@@ -1,0 +1,14 @@
+# R project files
+.Rproj.user
+.Rhistory
+.RData
+.RDataTmp
+.RDataTmp*
+.Ruserdata
+*.Rproj
+
+# macOS
+.DS_Store
+
+# Data
+data/
