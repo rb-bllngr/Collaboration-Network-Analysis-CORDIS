@@ -106,6 +106,8 @@ load_csv <- function(subdirectory, filename) {
   message("Loading: ", path)
 
   # Fast read .csv files as data.table objects
-  dt <- fread(path, encoding = "UTF-8", sep = ";", na.strings = c("", "N/A"))
+  dt <- fread(path, encoding = "UTF-8", sep = ";", na.strings = c("", "N/A"),
+              quote = "", fill = Inf)
+              # Alternative: drop = "objective" instead of fill = Inf (better performance)
   return(dt)
 }
