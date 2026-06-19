@@ -13,7 +13,6 @@ source("functions.R")
 # List of CRAN packages - every package needed for project beside default packages
 packages <- c(
   # # Install packages
-  # "data.table",
   # "dplyr",
   # "ggcorrplot",
   # "ggplot2",
@@ -30,7 +29,9 @@ packages <- c(
   # Install package for downloading data from EU Commission CORDIS' URLs
   "httr",
   # Install package for validating function input
-  "checkmate"
+  "checkmate",
+  # Install package for fast data loading and manipulation at scale
+  "data.table"
 )
 
 # Set CRAN mirror
