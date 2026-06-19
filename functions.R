@@ -3,17 +3,20 @@
 # --- List of functions ------------------------------------------------------------------
 #' 1. unzip_recursive
 #' 2. download_and_unzip
+#' 3. load_csv
 
-#' FUNCTION 1:
+# --- Function 1 -------------------------------------------------------------------------
 #' @description
-#' TODO: The function 'unzip_recursive' ...
+#' Recursively unzips .zip files to destination directory and removes the .zip afterwards.
+#' If any nested .zip files are found among the extracted contents, those are unzipped in
+#' the same way until no .zip files remain.
 #'
 #' Inputs:
-#' @param path TODO
-#' @param destination TODO
+#' @param path        Character string. Full path to the .zip file to extract.
+#' @param destination Character string. Path to directory where extracted files are placed.
 #'
 #' Output:
-#' @returns TODO
+#' @returns No return value. Called for extracting files and removing zips.
 
 unzip_recursive <- function(zip_path, destination) {
   # Check for valid input
@@ -35,16 +38,18 @@ unzip_recursive <- function(zip_path, destination) {
   }
 }
 
-#' FUNCTION 2:
+# --- Function 2 -------------------------------------------------------------------------
 #' @description
-#' TODO: The function 'download_and_unzip' ...
+#' Downloads a .zip file from given URL to destination directory, then extracts its
+#' contents recursively using unzip_recursive().
 #'
 #' Inputs:
-#' @param url TODO
-#' @param destination TODO
+#' @param url         Character string. URL of the .zip file to download.
+#' @param destination Character string. Path to the directory where downloaded files are
+#'                    saved and extracted into.
 #'
 #' Output:
-#' @returns TODO
+#' @returns No return value. Called for downloading and extracting files.
 
 download_and_unzip <- function(url, destination) {
   # Check for valid input
@@ -76,4 +81,31 @@ download_and_unzip <- function(url, destination) {
   message("Unzipping: ", basename(zip_path))
   unzip_recursive(zip_path, subdirectory)
   message("Done: ", basename(url))
+}
+
+# --- Function 3 -------------------------------------------------------------------------
+#' @description
+#' Loads a single .csv file from a CORDIS program subdirectory using 'fread'.
+#'
+#' @param subdirectory  Character string. Subdirectory name within raw data directory.
+#' @param filename      Character string. CSV filename to load.
+#'
+#' @returns A data.table of the referenced data.
+
+load_csv <- function(subdirectory, filename) {
+  # Check for valid input
+  require(checkmate)
+  assertString(subdirectory)
+  assertString(filename)
+
+  # Check for paths to load .csv files from
+  path <- file.path(PATHS$DATA_DIR, subdirectory, filename)
+  if (!file.exists(path)) {
+    stop("File not found: ", path)
+  }
+  message("Loading: ", path)
+
+  # Fast read .csv files as data.table objects
+  dt <- fread(path, encoding = "UTF-8", sep = ";", na.strings = c("", "N/A"))
+  return(dt)
 }
