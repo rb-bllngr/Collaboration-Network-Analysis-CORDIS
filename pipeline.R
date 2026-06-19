@@ -4,4 +4,7 @@
 source("envir_setup.R")
 
 # Step 2: Download and extract raw data from EU Commission portal 'CORDIS'
-source("download_data.R")
+source("Programs/download_data.R")
+
+# Step 3: Load and combine project and organisation data from both programs
+source("Programs/merge_data_sets.R")
