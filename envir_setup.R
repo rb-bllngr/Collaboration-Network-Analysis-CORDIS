@@ -8,6 +8,7 @@ PATHS <- list(
 
 # Source helper functions
 source("functions.R")
+source("plot-styling.R")
 
 # invisible(lapply(paths, dir.create, showWarnings = FALSE, recursive = TRUE))
 
@@ -17,7 +18,6 @@ packages <- c(
   # # Install packages
   # "dplyr",
   # "ggcorrplot",
-  # "ggplot2",
   # "knitr",
   # "lubridate",
   # "ranger",
@@ -36,7 +36,11 @@ packages <- c(
   # Install package for reading .xlsx files
   "readxl",
   # Install package for handling of network objects
-  "igraph"
+  "igraph",
+  # Install package for visualization of networks
+  "ggplot2",
+  # Install package for visualization if world map
+  "maps"
 )
 
 # Set CRAN mirror
