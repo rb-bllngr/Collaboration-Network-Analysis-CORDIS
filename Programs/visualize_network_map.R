@@ -33,10 +33,10 @@ plot_map <- ggplot() +
   geom_polygon(data = world,
                aes(x = long, y = lat, group = group), fill = "white", color = "black", linewidth = 0.1) +
   geom_point(data = nodes, aes(x = longitude, y = latitude),
-             color = "blue", # RColorBrewer::brewer.pal(3, "Set2")[3],
+             color = lmu_colors$blue, # RColorBrewer::brewer.pal(3, "Set2")[3],
              size = 0.2, alpha = 0.5) +
   geom_segment(data = edges, aes(x = long_from, y = lat_from, xend = long_to, yend = lat_to),
-               color = "red", #RColorBrewer::brewer.pal(3, "Set2")[2],
+               color = lmu_colors$red, #RColorBrewer::brewer.pal(3, "Set2")[2],
                alpha = 0.0075, linewidth = 0.1) +
   coord_fixed(1.1) +
   theme_void() +
@@ -45,3 +45,30 @@ plot_map <- ggplot() +
     panel.background = element_rect(fill = "white", color = NA)
   )
 save_plot_lmu(plot_map, "network_unimodal_weighted_map.png")
+
+
+# Egocentric network for Ludwig-Maximilians-Universität München (organisationID = 999978433)
+focal_node <- which(V(graph_weighted)$name == "999978433")
+
+neighbour_nodes <- ego(graph_weighted, order = 1, nodes = focal_node)[[1]]
+neighbour_ids <- V(graph_weighted)$name[neighbour_nodes]
+
+nodes_ego <- nodes[organisationID %in% neighbour_ids]
+edges_ego <- edges[(from %in% neighbour_ids) & (to %in% neighbour_ids)]
+
+plot_map_ego <- ggplot() +
+  geom_polygon(data = world,
+               aes(x = long, y = lat, group = group), fill = "white", color = "black", linewidth = 0.1) +
+  geom_point(data = nodes_ego, aes(x = longitude, y = latitude),
+             color = lmu_colors$blue, # RColorBrewer::brewer.pal(3, "Set2")[3],
+             size = 0.2, alpha = 0.5) +
+  geom_segment(data = edges_ego, aes(x = long_from, y = lat_from, xend = long_to, yend = lat_to),
+               color = lmu_colors$red, #RColorBrewer::brewer.pal(3, "Set2")[2],
+               alpha = 0.0075, linewidth = 0.1) +
+  coord_fixed(1.1) +
+  theme_void() +
+  theme(
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA)
+  )
+save_plot_lmu(plot_map_ego, "network_unimodal_weighted_ego_LMU.png")
