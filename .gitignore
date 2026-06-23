@@ -13,3 +13,5 @@
 # Data
 Data/Raw/*
 !Data/Raw/.gitkeep
+Data/Intermediate/*
+!Data/Intermediate/.gitkeep
