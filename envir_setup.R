@@ -11,7 +11,8 @@ source("functions.R")
 
 # invisible(lapply(paths, dir.create, showWarnings = FALSE, recursive = TRUE))
 
-# List of CRAN packages - every package needed for project beside default packages
+# List of CRAN packages. Every package needed for project beside default packages in
+# chronological order
 packages <- c(
   # # Install packages
   # "dplyr",
@@ -33,7 +34,9 @@ packages <- c(
   # Install package for data manipulation at scale
   "data.table",
   # Install package for reading .xlsx files
-  "readxl"
+  "readxl",
+  # Install package for handling of network objects
+  "igraph"
 )
 
 # Set CRAN mirror
