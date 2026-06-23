@@ -8,3 +8,6 @@ source("Programs/download_data.R")
 
 # Step 3: Load and combine project and organisation data from both programs
 source("Programs/merge_data_sets.R")
+
+# Step 4: First visualization of network data
+source("Programs/visualize_network_map.R")
