@@ -37,6 +37,7 @@ message("Organisations loaded: ", nrow(organisations), " rows across both progra
 cordis <- organisations[projects, on = .(projectID = id), nomatch = NA]
 message("Joined dataset: ", nrow(cordis), " rows, ", ncol(cordis), " columns")
 
+saveRDS(cordis, file.path(PATHS$INTERMEDIATE_DIR, "cordis.RDS"))
 
 # --- Sanity checks: ---------------------------------------------------------------------
 message("\n--- Sanity checks --- \nRows per program:")

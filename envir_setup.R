@@ -2,7 +2,8 @@
 
 # Data file paths
 PATHS <- list(
-  DATA_DIR = "Data/Raw"
+  DATA_DIR          = "Data/Raw",
+  INTERMEDIATE_DIR  = "Data/Intermediate"
 )
 
 # Source helper functions
