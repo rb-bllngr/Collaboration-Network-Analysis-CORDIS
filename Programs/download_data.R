@@ -4,16 +4,16 @@
 # Configure the URLs required to download
 URLS <- list(
   Horizon2014to2020 = list(
-    deliverables  = "https://cordis.europa.eu/data/cordis-h2020projectDeliverables-csv.zip",
-    publications  = "https://cordis.europa.eu/data/cordis-h2020projectPublications-csv.zip",
-    reports       = "https://cordis.europa.eu/data/cordis-h2020reports-csv.zip",
-    projects      = "https://cordis.europa.eu/data/cordis-h2020projects-csv.zip"
+    deliverables  = "https://cordis.europa.eu/data/cordis-h2020projectDeliverables-xlsx.zip",
+    publications  = "https://cordis.europa.eu/data/cordis-h2020projectPublications-xlsx.zip",
+    reports       = "https://cordis.europa.eu/data/cordis-h2020reports-xlsx.zip",
+    projects      = "https://cordis.europa.eu/data/cordis-h2020projects-xlsx.zip"
   ),
   Horizon2021to2027 = list(
-    deliverables  = "https://cordis.europa.eu/data/cordis-HORIZONprojectDeliverables-csv.zip",
-    publications  = "https://cordis.europa.eu/data/cordis-HORIZONprojectPublications-csv.zip",
-    reports       = "https://cordis.europa.eu/data/cordis-HORIZONreports-csv.zip",
-    projects      = "https://cordis.europa.eu/data/cordis-HORIZONprojects-csv.zip"
+    deliverables  = "https://cordis.europa.eu/data/cordis-HORIZONprojectDeliverables-xlsx.zip",
+    publications  = "https://cordis.europa.eu/data/cordis-HORIZONprojectPublications-xlsx.zip",
+    reports       = "https://cordis.europa.eu/data/cordis-HORIZONreports-xlsx.zip",
+    projects      = "https://cordis.europa.eu/data/cordis-HORIZONprojects-xlsx.zip"
   )
 )
 

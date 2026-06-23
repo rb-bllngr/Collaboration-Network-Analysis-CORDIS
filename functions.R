@@ -3,7 +3,7 @@
 # --- List of functions ------------------------------------------------------------------
 #' 1. unzip_recursive
 #' 2. download_and_unzip
-#' 3. load_csv
+#' 3. load_xlsx
 
 # --- Function 1 -------------------------------------------------------------------------
 #' @description
@@ -41,7 +41,7 @@ unzip_recursive <- function(zip_path, destination) {
 # --- Function 2 -------------------------------------------------------------------------
 #' @description
 #' Downloads a .zip file from given URL to destination directory, then extracts its
-#' contents recursively using unzip_recursive().
+#' contents recursively using 'unzip_recursive()'.
 #'
 #' Inputs:
 #' @param url         Character string. URL of the .zip file to download.
@@ -58,7 +58,7 @@ download_and_unzip <- function(url, destination) {
   assertString(destination)
 
   # Create a subdirectory named after the .zip file
-  zip_name <- tools::file_path_sans_ext(basename(url))  # e.g. "cordis-h2020projects-csv"
+  zip_name <- tools::file_path_sans_ext(basename(url))  # e.g. "cordis-h2020projects-xlsx"
   subdirectory <- file.path(destination, zip_name)
   dir.create(subdirectory, showWarnings = FALSE)
 
@@ -85,16 +85,19 @@ download_and_unzip <- function(url, destination) {
 
 # --- Function 3 -------------------------------------------------------------------------
 #' @description
-#' Loads a single .csv file from a CORDIS program subdirectory using 'fread'.
+#' Loads a single .xlsx file from CORDIS program subdirectory using 'readxl::read_excel'.
+#' Excel's format guarantees row integrity regardless of column count variation, just adds
+#' NAs for empty cells in their correct column position.
 #'
 #' @param subdirectory  Character string. Subdirectory name within raw data directory.
 #' @param filename      Character string. CSV filename to load.
 #'
 #' @returns A data.table of the referenced data.
 
-load_csv <- function(subdirectory, filename) {
+load_xlsx <- function(subdirectory, filename) {
   # Check for valid input
   require(checkmate)
+  require(readxl)
   assertString(subdirectory)
   assertString(filename)
 
@@ -104,10 +107,9 @@ load_csv <- function(subdirectory, filename) {
     stop("File not found: ", path)
   }
   message("Loading: ", path)
-
-  # Fast read .csv files as data.table objects
-  dt <- fread(path, encoding = "UTF-8", sep = ";", na.strings = c("", "N/A"),
-              quote = "", fill = Inf)
-              # Alternative: drop = "objective" instead of fill = Inf (better performance)
+  
+  # Read .xlsx files with 'read_excel()' for more tolerant handling of malformed format
+  # and convert to data.table objects afterwards
+  dt <- setDT(read_excel(path))
   return(dt)
 }

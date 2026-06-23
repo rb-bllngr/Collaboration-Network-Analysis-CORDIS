@@ -21,7 +21,6 @@ packages <- c(
   # "ranger",
   # "RColorBrewer",
   # "readr",
-  # "readxl",
   # "rmarkdown",
   # "scales",
   # "stringr"
@@ -30,8 +29,10 @@ packages <- c(
   "httr",
   # Install package for validating function input
   "checkmate",
-  # Install package for fast data loading and manipulation at scale
-  "data.table"
+  # Install package for data manipulation at scale
+  "data.table",
+  # Install package for reading .xlsx files
+  "readxl"
 )
 
 # Set CRAN mirror
