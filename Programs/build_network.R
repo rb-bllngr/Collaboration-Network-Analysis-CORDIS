@@ -3,7 +3,7 @@
 #                  that co-participated in at least one project.
 
 # Load the data set
-cordis <- readRDS(file.path(PATHS$INTERMEDIATE_DIR, "cordis.RDS"))
+cordis <- readRDS(file.path(PATHS$DATA_INT, "cordis.RDS"))
 
 # Build the participation table of organisations: Retain only the columns needed for
 # constructing the uni-modal network plus columns used as node-level attributes
@@ -31,8 +31,8 @@ graph_weighted <- graph_from_data_frame(edges, directed = FALSE, vertices = node
 graph_unweighted <- delete_edge_attr(graph_weighted, "weight")
 
 # Save the two network versions for future use
-saveRDS(graph_weighted, file.path(PATHS$INTERMEDIATE_DIR, "network_unimodal_weighted.RDS"))
-saveRDS(graph_unweighted, file.path(PATHS$INTERMEDIATE_DIR, "network_unimodal_unweighted.RDS"))
+saveRDS(graph_weighted, file.path(PATHS$DATA_INT, "network_cordis_weighted.RDS"))
+saveRDS(graph_unweighted, file.path(PATHS$DATA_INT, "network_cordis_unweighted.RDS"))
 
 # --- Sanity checks: ---------------------------------------------------------------------
 message("\n --- Sanity checks ---")

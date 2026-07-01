@@ -2,13 +2,15 @@
 
 # Data file paths
 PATHS <- list(
-  DATA_DIR          = "Data/Raw",
-  INTERMEDIATE_DIR  = "Data/Intermediate"
+  DATA_RAW = "Data/Raw",
+  DATA_INT = "Data/Intermediate"
 )
+
+
 
 # Source helper functions
 source("functions.R")
-source("plot-styling.R")
+source("plot_styling.R")
 
 # invisible(lapply(paths, dir.create, showWarnings = FALSE, recursive = TRUE))
 

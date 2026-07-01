@@ -21,7 +21,7 @@ URLS <- list(
 for (programme in names(URLS)) {
   for (dataset in names(URLS[[programme]])) {
     url <- URLS[[programme]][[dataset]]
-    download_and_unzip(url, PATHS$DATA_DIR)
+    download_and_unzip(url, PATHS$DATA_RAW)
   }
 }
 

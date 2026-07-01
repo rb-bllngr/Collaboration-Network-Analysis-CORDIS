@@ -2,8 +2,8 @@
 #                          organisations' geolocation data for node placement.
 
 # Load the data set and network object
-cordis <- readRDS(file.path(PATHS$INTERMEDIATE_DIR, "cordis.RDS"))
-graph_weighted <- readRDS(file.path(PATHS$INTERMEDIATE_DIR, "network_unimodal_weighted.RDS"))
+cordis <- readRDS(file.path(PATHS$DATA_INT, "cordis.RDS"))
+graph_weighted <- readRDS(file.path(PATHS$DATA_INT, "network_cordis_weighted.RDS"))
 
 # Check whether any missing data for geolocation
 message("Missing geolocations: ", nrow(cordis[is.na(geolocation) | geolocation == "",
