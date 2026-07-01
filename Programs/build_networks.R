@@ -21,7 +21,9 @@ for(name in names(networks)) {
 }
 
 
-# --- Sanity checks: ---------------------------------------------------------------------
+# --- Sanity checks for CORDIS network: --------------------------------------------------
+graph_weighted <- networks[["cordis"]]$weighted
+graph_unweighted <- networks[["cordis"]]$unweighted
 message("\n --- Sanity checks ---")
 message("Nodes: ", vcount(graph_weighted))
 message("Edges: ", ecount(graph_weighted))
@@ -32,7 +34,6 @@ message("Edge weight range: ", min(E(graph_weighted)$weight),
 message("Isolated nodes: ", sum(degree(graph_weighted) == 0))
 # TODO: SHOULD WE EXCLUDE THE ISOLATED NODES AS WE ARE LOOKING AT COLLABORATIONS OR KEEP
 # THEM (AS DEGREE OF 0 IMPLIES ORGANISATION IS SOLE ORGANISATION ON THE PROJECT)
-
 message("Graph is connected: ", is_connected(graph_weighted))
 message("Number of components: ", components(graph_weighted)$no)
 message("Size of largest component: ", max(components(graph_weighted)$csize))
