@@ -44,7 +44,7 @@ plot_map <- ggplot() +
     plot.background = element_rect(fill = "white", color = NA),
     panel.background = element_rect(fill = "white", color = NA)
   )
-save_plot_lmu(plot_map, "network_unimodal_weighted_map.png")
+save_plot_lmu(plot_map, "network_cordis_weighted_map.png")
 
 
 # Egocentric network for Ludwig-Maximilians-Universität München (organisationID = 999978433)
@@ -71,4 +71,4 @@ plot_map_ego <- ggplot() +
     plot.background = element_rect(fill = "white", color = NA),
     panel.background = element_rect(fill = "white", color = NA)
   )
-save_plot_lmu(plot_map_ego, "network_unimodal_weighted_ego_LMU.png")
+save_plot_lmu(plot_map_ego, "network_cordis_egocentric_LMU.png")
