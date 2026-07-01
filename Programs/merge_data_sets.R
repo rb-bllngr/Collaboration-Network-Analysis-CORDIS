@@ -14,7 +14,7 @@ PROGRAM_DIRECTORIES <- list(
 )
 
 # Load and combine different program data for projects
-# Note: primarily columns from 'objective' onward may be misaligned for a subset of rows 
+# Note: primarily columns from 'objective' onward may be misaligned for a subset of rows
 # due to inconsistent field counts in the exported CORDIS file. These columns are not used
 # in the network analysis and the issue is therefore not corrected here.
 projects_list <- lapply(names(PROGRAM_DIRECTORIES), function(prog) {
@@ -37,16 +37,24 @@ message("Organisations loaded: ", nrow(organisations), " rows across both progra
 cordis <- organisations[projects, on = .(projectID = id), nomatch = NA]
 message("Joined dataset: ", nrow(cordis), " rows, ", ncol(cordis), " columns")
 
-saveRDS(cordis, file.path(PATHS$INTERMEDIATE_DIR, "cordis.RDS"))
+# TODO: FIX MALFORMED frameworkProgramme ENTRIES BY EXCLUDING OR MANUALLY REPAIRING THEM
+#       BEFORE SAVING INDIVIDUAL PROGRAMME .RDS-OBJECTS AND CONVERT TO FACTOR
+
+# Convert variable frameworkProgramme to Factor
+cordis[, frameworkProgramme := factor(frameworkProgramme, levels = c("H2020", "HORIZON"))]
+
+# Save the joined and individual programme-networks
+saveRDS(cordis, file.path(PATHS$DATA_INT, "cordis.RDS"))
+saveRDS(cordis[frameworkProgramme == "H2020"], file.path(PATHS$DATA_INT, "h2020.RDS"))
+saveRDS(cordis[frameworkProgramme == "HORIZON"], file.path(PATHS$DATA_INT, "horizon.RDS"))
 
 # --- Sanity checks: ---------------------------------------------------------------------
 message("\n--- Sanity checks --- \nRows per program:")
 print(cordis[, .N, by = frameworkProgramme])
 
 # Try to find out more about the malformed frameworkProgramme entries
-# TODO: HOW TO PROCEED WITH THESE DEVIATIONS? EXCLUDE THEM COMPLETELY OR CHANGE PROGRAM
-#       MANUALLY AND IGNORE WRONG VALUES IN OTHER COLUMNS (OR MANUALLY FIX THEM)?
 View(cordis[!frameworkProgramme %in% c("H2020", "HORIZON")])
+
 # Check whether present deviations for projectIDs cover all entries under respective ID
 cordis[!frameworkProgramme %in% c("H2020", "HORIZON"), .N, by = projectID]
 malformed_frameworkProgramme_projIDs <-
