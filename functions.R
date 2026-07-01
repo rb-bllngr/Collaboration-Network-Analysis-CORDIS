@@ -4,6 +4,7 @@
 #' 1. unzip_recursive
 #' 2. download_and_unzip
 #' 3. load_xlsx
+#' 4. build_collaboration_network
 
 # --- Function 1 -------------------------------------------------------------------------
 #' @description
@@ -112,4 +113,52 @@ load_xlsx <- function(subdirectory, filename) {
   # and convert to data.table objects afterwards
   dt <- setDT(read_excel(path))
   return(dt)
+}
+
+# --- Function 4 -------------------------------------------------------------------------
+#' @description
+#' Builds a unimodal (organisation x organisation), undirected collaboration network from
+#' a data.table object. Nodes represent the organisations, edges connect those nodes that
+#' have co-participated in at least one project, weighted by the number of shared projects.
+#'
+#' @param dt data.table object. Must contain at least columns projectID, organisationID,
+#'                              and role.
+#'
+#' @returns A list with two igraph objects, one weighted ($weighted) and one unweighted
+#'          ($unweighted) network.
+
+build_collaboration_network <- function(dt) {
+  # Check for valid input
+  require(checkmate)
+  require(igraph)
+  assertDataTable(dt)
+  assertNames(names(dt), must.include = c("projectID", "organisationID", "role"))
+
+  # Build the participation table of organisations: Retain only the columns needed for
+  # constructing the uni-modal network plus columns used as node-level attributes
+  network <- dt[, .(projectID, organisationID, role)]
+  # TODO: ADD MORE ATTRIBUTES IF NEEDED, REMEMBER TO UPDATE FUNCTION DESCRIPTION ACCORDINGLY
+
+  # Self-join the network to get all pairs of co-participating organisations. Only the pairs
+  # where organisationID < i.organisationID are kept to avoid duplicates in undirected graph
+  network <- network[network, on = .(projectID), nomatch = NULL, allow.cartesian = TRUE]
+  network <- network[organisationID < i.organisationID]
+  setnames(network, old = c("organisationID", "i.organisationID"), new = c("from", "to"))
+
+  # Aggregate edges to weighted edges by number of shared projects
+  edges <- network[, .(weight = .N), by = c("from", "to")]
+
+  # Extract node attributes information (using 'uniqueN()' instead of .N as an organisation
+  # can theoretically perform different roles in the same project)
+  nodes <- dt[, .(
+    n_proj  = uniqueN(projectID),
+    n_coord = sum(role == "coordinator")
+  ), by = organisationID]
+
+  # Make igraph network objects
+  graph_weighted <- graph_from_data_frame(edges, directed = FALSE, vertices = nodes)
+  graph_unweighted <- delete_edge_attr(graph_weighted, "weight")
+
+  # Return list of the two igraph objects
+  list(weighted = graph_weighted, unweighted = graph_unweighted)
 }
