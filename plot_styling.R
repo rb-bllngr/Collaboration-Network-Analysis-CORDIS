@@ -33,7 +33,7 @@ theme_lmu <- function(base_size = 12, base_family = "sans") {
 
           # Legend
           legend.title = element_text(color = lmu_colors$black, # TODO: face = "bold"
-                                      hjust = 1),
+                                      hjust = 0),
           legend.text = element_text(color = lmu_colors$black),
           legend.position = "right",
 
