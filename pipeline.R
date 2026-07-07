@@ -11,3 +11,9 @@ source("Programs/merge_data_sets.R")
 
 # Step 4: First visualization of network data
 source("Programs/visualize_network_map.R")
+
+# Step 5: Perform degree, degree distribution, and degree correlation analysis
+source("Programs/network_degrees.R")
+
+# Step 6: Perform centrality (degree, betweenness, closeness, eigenvector) analysis
+source("Programs/network_centrality.R")
