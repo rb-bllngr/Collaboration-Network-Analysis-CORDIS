@@ -1,0 +1,17 @@
+# R project files
+.Rproj.user
+.Rhistory
+.RData
+.RDataTmp
+.RDataTmp*
+.Ruserdata
+*.Rproj
+
+# macOS
+.DS_Store
+
+# Data
+Data/Raw/*
+!Data/Raw/.gitkeep
+Data/Intermediate/*
+!Data/Intermediate/.gitkeep
