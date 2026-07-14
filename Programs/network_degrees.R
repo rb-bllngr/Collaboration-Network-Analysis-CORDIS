@@ -1,7 +1,6 @@
 # network_degrees.R: Degree, degree distribution, and degree correlation analysis for the
 #                    H2020 and HORIZON EUROPE collaboration networks.
 
-# --- Data Preparation -------------------------------------------------------------------
 # Load networks for each programme (take weighted version for possibility to extract
 # information on graph strength)
 h2020 <- readRDS(file.path(PATHS$DATA_INT, "network_h2020_weighted.RDS"))
@@ -87,8 +86,6 @@ dt_joint_degrees <- rbindlist(lapply(networks, function(net) {
 dt_joint_degrees <- dt_joint_degrees[, .N, by = .(programme, d1, d2)]
 dt_joint_degrees[, freq := N / sum(N), by = programme]
 
-
-# --- Analysis and Visualization ---------------------------------------------------------
 # Compute summary statistics (and more) on degree and strength information
 dt_summary <- dt_metrics[, .(
   n_nodes = .N,

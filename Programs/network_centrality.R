@@ -17,7 +17,7 @@ programmes <- c("H2020", "HORIZON")
 results <- list()
 
 # Decide whether checkpoint .RDS files for expensive intermediate computations should be
-# recomputed --> set TRUE for re-computation!
+# recomputed --> set TRUE for re-computation! (here: betweenness and closeness centrality)
 recompute <- FALSE
 
 for (prog in programmes) {
@@ -135,8 +135,6 @@ for (prog in programmes) {
 # Combine programme-specific computations into one data.table
 dt_centrality <- rbindlist(results)
 
-
-# --- Analysis and Visualization ---------------------------------------------------------
 # Derive some summary statistics on centrality measurements
 dt_summary <- dt_centrality[, .(
   n_nodes = .N,
