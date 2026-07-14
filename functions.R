@@ -257,3 +257,47 @@ checkpoint_RDS <- function(filename, prog, func_to_compute, recompute = FALSE) {
   message("Checkpoint saved: ", file.path(prog, paste0(filename, ".RDS")))
   return(result)
 }
+
+# --- Function 7 -------------------------------------------------------------------------
+#' @description
+#' Repeatedly generates random graphs using a function to generate the graph, which is
+#' supplied by the user. Then computes the global clustering coefficient and average path
+#' length for the giant component of each simulated graph. The resulting values can be
+#' used to compare an empirical network with these reference models.
+#'
+#' Inputs:
+#' @param func_to_generate_graph Function with no arguments. Must return an igraph object
+#'                               representing on randomly generated (= simulated) graph.
+#' @param n_simulation Numeric scalar. Default is 100; describes the number of iterations,
+#'                     i.e. number of random graphs to generate.
+#'
+#' Output:
+#' @returns A data.table object with one row for the respective measures per simulation
+
+simulate_random_graph <- function(func_to_generate_graph, n_simulation = 100) {
+  # Check for valid input
+  require(checkmate)
+  assertFunction(func_to_generate_graph, nargs = 0)
+  assertCount(n_simulation)
+
+  # Pre-allocate placeholder vectors to be filled in loop due to performance reasons
+  clustering <- numeric(length = n_simulation)
+  pathlength <- numeric(length = n_simulation)
+
+  # Each iteration, compute measures once for simulated random graph and store in slot i
+  # of the placeholder
+  for (i in seq_len(n_simulation)) {
+    # Generate random graph as reference model
+    g_random <- func_to_generate_graph()
+
+    # Reduce to giant component, as measures well-defined solely on connected graph
+    g_random_giant_comp <- largest_component(g_random)
+
+    # Compute measures (clustering coefficient, average path length)
+    clustering[i] <- transitivity(g_random_giant_comp, type = "global")
+    pathlength[i] <- mean_distance(g_random_giant_comp, directed = FALSE)
+  }
+
+  # Return data.table object with the fully-filled placeholder vector
+  data.table(clustering = clustering, pathlength = pathlength)
+}
