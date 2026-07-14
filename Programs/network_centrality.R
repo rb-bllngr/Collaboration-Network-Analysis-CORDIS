@@ -260,7 +260,7 @@ plot_corr_heatmap <-
         legend.title = element_text(vjust = 0.8))
 save_plot_lmu(plot_corr_heatmap, "centrality_correlation_matrix.png")
 
-# Scatter plot of degree vs. betweenness to investigate the question: Are high-degree
+# Scatter plot of betweenness vs. degree to investigate the question: Are high-degree
 # organisations simultaneously bridges? Take normalised degree and betweenness centrality
 # for inter-programme comparison; exclude isolated organisations, as both measures are zero
 plot_degree_betweenness <-
@@ -274,7 +274,7 @@ plot_degree_betweenness <-
   theme_lmu()
 save_plot_lmu(plot_degree_betweenness, "centrality_degree_betweenness.png")
 
-# Scatter plot of degree vs. eigenvector to investigate the question: Are high-degree
+# Scatter plot of eigenvector vs. degree to investigate the question: Are high-degree
 # organisations simultaneously connected to other important organisations? Take normalised
 # degree centrality (eigenvector is automatically scaled to maximum of 1) for inter-programme
 # comparison; exclude isolated organisation and restrict to giant component, as eigenvector
