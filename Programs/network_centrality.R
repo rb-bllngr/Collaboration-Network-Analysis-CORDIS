@@ -54,7 +54,7 @@ for (prog in programmes) {
   # Compute betweenness centrality, normalised by using function argument, for unweighted
   # and weighted (= inverse-weight distance) version. Remains well-defined across
   # disconnected components, therefore computed on full graph.
-  message("--- Betweenness centrality (weighted)...")
+  message("--- Betweenness centrality (weighted) ...")
   centr_between_weighted <- checkpoint_RDS("centr_between_weighted", prog, function() {
     betweenness(g_weighted, weights = dist, normalized = FALSE)
   }, recompute = recompute)
@@ -63,7 +63,7 @@ for (prog in programmes) {
     betweenness(g_weighted, weights = dist, normalized = TRUE)
   }, recompute = recompute)
 
-  message("--- Betweenness centrality (unweighted)...")
+  message("--- Betweenness centrality (unweighted) ...")
   centr_between_unweighted <- checkpoint_RDS("centr_between_unweighted", prog, function() {
     betweenness(g_unweighted, normalized = FALSE)
   }, recompute = recompute)
@@ -272,7 +272,7 @@ plot_degree_betweenness <-
        y = "Normierte Betweenness-Zentralität") +
   facet_wrap(~ programme) +
   theme_lmu()
-save_plot_lmu(plot_degree_betweenness, "centrality_degree_betweenness.png")
+save_plot_lmu(plot_degree_betweenness, "centrality_betweenness_degree.png")
 
 # Scatter plot of eigenvector vs. degree to investigate the question: Are high-degree
 # organisations simultaneously connected to other important organisations? Take normalised
@@ -292,4 +292,4 @@ plot_degree_eigenvector <-
        y = "Normierte Eigenvektor-Zentralität [log10]") +
   facet_wrap(~ programme) +
   theme_lmu()
-save_plot_lmu(plot_degree_eigenvector, "centrality_degree_eigenvector.png")
+save_plot_lmu(plot_degree_eigenvector, "centrality_eigenvector_degree.png")
