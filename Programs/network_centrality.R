@@ -153,8 +153,6 @@ print(dt_summary)
 # Spearman correlation between weighted and unweighted version of each of the centrality
 # measures per programme (constrained to giant component for comparability with closeness
 # and eigenvector centrality)
-correlation <- list()
-
 dt_correlation <- rbindlist(lapply(programmes, function(prog) {
   # Reduce data set to giant component subset within each programme
   dt_giant_comp <- dt_centrality[(programme == prog) & (in_giant_comp == TRUE)]
