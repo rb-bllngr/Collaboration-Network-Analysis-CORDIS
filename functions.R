@@ -107,7 +107,7 @@ load_xlsx <- function(subdirectory, filename) {
   assertString(filename)
 
   # Check for paths to load .csv files from
-  path <- file.path(PATHS$DATA_DIR, subdirectory, filename)
+  path <- file.path(PATHS$DATA_RAW, subdirectory, filename)
   if (!file.exists(path)) {
     stop("File not found: ", path)
   }
