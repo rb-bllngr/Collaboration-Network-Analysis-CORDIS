@@ -132,8 +132,9 @@ for (prog in programmes) {
           round(difftime(Sys.time(), time_start, units = "secs"), 1), " seconds")
 }
 
-# Combine programme-specific computations into one data.table
+# Combine programme-specific computations into one data.table and save as .RDS file
 dt_centrality <- rbindlist(results)
+saveRDS(dt_centrality, file.path(PATHS$DATA_INT, "centrality.RDS"))
 
 # Derive some summary statistics on centrality measurements
 dt_summary <- dt_centrality[, .(
