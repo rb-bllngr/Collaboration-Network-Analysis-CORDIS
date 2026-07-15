@@ -80,69 +80,69 @@ for (prog in programmes) {
   )
   # Note: for definition of weighted (or so-called Barrat) variant, see ?transitivity
 
-  # Average path length:
-  message("--- Average path length ...")
-  # Caution, as this section is computationally expensive (takes approximately ___ minutes
-  # to be re-computed), computation is skipped to use checkpoint .RDS if already available
-  results_pathlength[[prog]] <- data.table(
-    programme = prog,
-    # Compute on giant-component, as only well-defined on connected graph
-    avg_unweighted = checkpoint_RDS("avgpathlength_unweighted", prog, function() {
-      mean_distance(giant_comp_unweighted, directed = FALSE)
-      }, recompute = recompute),
-
-    avg_weighted = checkpoint_RDS("avgpathlength_weighted", prog, function() {
-      mean_distance(giant_comp_weighted, weights = 1 / E(giant_comp_weighted)$weight, directed = FALSE)
-      }, recompute = recompute)
-  )
-
-  # Small-world coefficient:
-  message("--- Small-world coefficient (Monte Carlo simulation) ...")
-  # Monte Carlo simulation to compare the real graph against two reference models, i.e.
-  #   - Erdös-Rényi graph (with same number of edges and nodes; ignores degree heterogeneity)
-  #   - configuration model graph (specifically Viger-Latapy; same degree sequence)
-  # Both are computed to see whether potential small-world property withstands even
-  # stricter small-world test condition
-  m_edges <- ecount(giant_comp_unweighted)
-  n_nodes <- vcount(giant_comp_unweighted)
-  degree_sequence <- degree(giant_comp_unweighted)
-
-  # Generate random graph reference models and compute measure on them, respectively (use
-  # default iteration runs of n_simulation = 100)
-  simulated_ErdosRenyi <- checkpoint_RDS("smallworld_ErdosRenyi", prog, function() {
-    simulate_random_graph(function() sample_gnm(n = n_nodes, m = m_edges, directed = FALSE))
-  }, recompute = recompute)
-  simulated_VigerLatapy <- checkpoint_RDS("smallworld_VigerLatapy", prog, function() {
-    simulate_random_graph(function() sample_degseq(degree_sequence, method = "vl"))
-  }, recompute = recompute)
-
-  results_smallworld_simulation[[prog]] <- list(ErdosRenyi = simulated_ErdosRenyi,
-                                                VigerLatapy = simulated_VigerLatapy)
-
-  # Assign respective values to needed formula variables (cf. Humphries & Gurney, 2008)
-  C_observed <- transitivity(giant_comp_unweighted, type = "global")
-  C_random_ErdosRenyi <- mean(simulated_ErdosRenyi$clustering)
-  C_random_VigerLatapy <- mean(simulated_VigerLatapy$clustering)
-  L_observed <- results_pathlength[[prog]]$avg_unweighted
-  L_random_ErdosRenyi <- mean(simulated_ErdosRenyi$pathlength)
-  L_random_VigerLatapy <- mean(simulated_VigerLatapy$pathlength)
-
-  # Compute small-world coefficient
-  S_ErdosRenyi <- (C_observed / C_random_ErdosRenyi) / (L_observed / L_random_ErdosRenyi)
-  S_VigerLatapy <- (C_observed / C_random_VigerLatapy) / (L_observed / L_random_VigerLatapy)
-
-  # Summarize to one data.table object
-  results_smallworld[[prog]] <- data.table(
-    programme = prog,
-    clustering_observed = C_observed,
-    clustering_ER = C_random_ErdosRenyi,
-    clustering_VL = C_random_VigerLatapy,
-    pathlength_observed = L_observed,
-    pathlength_ER = L_random_ErdosRenyi,
-    pathlength_VL = L_random_VigerLatapy,
-    smallworld_ER = S_ErdosRenyi,
-    smallworld_VL = S_VigerLatapy
-  )
+  # # Average path length:
+  # message("--- Average path length ...")
+  # # Caution, as this section is computationally expensive (takes approximately ___ minutes
+  # # to be re-computed), computation is skipped to use checkpoint .RDS if already available
+  # results_pathlength[[prog]] <- data.table(
+  #   programme = prog,
+  #   # Compute on giant-component, as only well-defined on connected graph
+  #   avg_unweighted = checkpoint_RDS("avgpathlength_unweighted", prog, function() {
+  #     mean_distance(giant_comp_unweighted, directed = FALSE)
+  #     }, recompute = recompute),
+  # 
+  #   avg_weighted = checkpoint_RDS("avgpathlength_weighted", prog, function() {
+  #     mean_distance(giant_comp_weighted, weights = 1 / E(giant_comp_weighted)$weight, directed = FALSE)
+  #     }, recompute = recompute)
+  # )
+  # 
+  # # Small-world coefficient:
+  # message("--- Small-world coefficient (Monte Carlo simulation) ...")
+  # # Monte Carlo simulation to compare the real graph against two reference models, i.e.
+  # #   - Erdös-Rényi graph (with same number of edges and nodes; ignores degree heterogeneity)
+  # #   - configuration model graph (specifically Viger-Latapy; same degree sequence)
+  # # Both are computed to see whether potential small-world property withstands even
+  # # stricter small-world test condition
+  # m_edges <- ecount(giant_comp_unweighted)
+  # n_nodes <- vcount(giant_comp_unweighted)
+  # degree_sequence <- degree(giant_comp_unweighted)
+  # 
+  # # Generate random graph reference models and compute measure on them, respectively (use
+  # # default iteration runs of n_simulation = 100)
+  # simulated_ErdosRenyi <- checkpoint_RDS("smallworld_ErdosRenyi", prog, function() {
+  #   simulate_random_graph(function() sample_gnm(n = n_nodes, m = m_edges, directed = FALSE))
+  # }, recompute = recompute)
+  # simulated_VigerLatapy <- checkpoint_RDS("smallworld_VigerLatapy", prog, function() {
+  #   simulate_random_graph(function() sample_degseq(degree_sequence, method = "vl"))
+  # }, recompute = recompute)
+  # 
+  # results_smallworld_simulation[[prog]] <- list(ErdosRenyi = simulated_ErdosRenyi,
+  #                                               VigerLatapy = simulated_VigerLatapy)
+  # 
+  # # Assign respective values to needed formula variables (cf. Humphries & Gurney, 2008)
+  # C_observed <- transitivity(giant_comp_unweighted, type = "global")
+  # C_random_ErdosRenyi <- mean(simulated_ErdosRenyi$clustering)
+  # C_random_VigerLatapy <- mean(simulated_VigerLatapy$clustering)
+  # L_observed <- results_pathlength[[prog]]$avg_unweighted
+  # L_random_ErdosRenyi <- mean(simulated_ErdosRenyi$pathlength)
+  # L_random_VigerLatapy <- mean(simulated_VigerLatapy$pathlength)
+  # 
+  # # Compute small-world coefficient
+  # S_ErdosRenyi <- (C_observed / C_random_ErdosRenyi) / (L_observed / L_random_ErdosRenyi)
+  # S_VigerLatapy <- (C_observed / C_random_VigerLatapy) / (L_observed / L_random_VigerLatapy)
+  # 
+  # # Summarize to one data.table object
+  # results_smallworld[[prog]] <- data.table(
+  #   programme = prog,
+  #   clustering_observed = C_observed,
+  #   clustering_ER = C_random_ErdosRenyi,
+  #   clustering_VL = C_random_VigerLatapy,
+  #   pathlength_observed = L_observed,
+  #   pathlength_ER = L_random_ErdosRenyi,
+  #   pathlength_VL = L_random_VigerLatapy,
+  #   smallworld_ER = S_ErdosRenyi,
+  #   smallworld_VL = S_VigerLatapy
+  # )
 
   message("Programme ", prog, " done in: ",
           round(difftime(Sys.time(), time_start, units = "secs"), 1), " seconds")
@@ -208,12 +208,33 @@ plot_coreness_degree <-
   theme_lmu()
 save_plot_lmu(plot_coreness_degree, "cohesion_coreness_degree.png")
 
-# Clustering coefficient: Validate weighted vs. unweighted analogous to the centrality
-# validation
-# TODO: 
+# Clustering coefficient: Validate weighted vs. unweighted local coefficient analogous to
+# the centrality validation
+dt_clustering_corr <- rbindlist(lapply(programmes, function(prog) {
+  # Extract programme-specific values and remove NaNs
+  dt_temp<- dt_clustering[(programme == prog) &
+                            !is.na(coeff_local_unweighted) &
+                            !is.na(coeff_local_weighted)]
+  # Compute Spearman correlation between the two versions and add to data table overview
+  data.table(
+    programme = prog,
+    spearman = round(cor(dt_temp$coeff_local_unweighted, dt_temp$coeff_local_weighted,
+                         method = "spearman"), digits = 4)
+  )
+}))
+print(dt_clustering_corr)
+# Yes, extremely high correlation within both programmes (0.9990 and 0.9994)!
 
 # Scatter plot of local clustering coefficient vs. degree
-# TODO: 
+plot_clustering_degree <-
+  # Restrict network to nodes of degree > 1, as clustering is rather meaningless below that
+  ggplot(dt_clustering[degree > 1], aes(x = degree, y = coeff_local_unweighted)) +
+  geom_point(size = 0.5, alpha = 0.1) +
+  scale_x_log10(limits = c(1, 10000)) +
+  labs(x = "Grad [log10]", y = "Lokaler Clustering-Koeffizient") +
+  facet_wrap(~ programme) +
+  theme_lmu()
+save_plot_lmu(plot_clustering_degree, "cohesion_clustering_degree.png")
 
 # Average path length and small-world coefficient
 print(dt_pathlength)
