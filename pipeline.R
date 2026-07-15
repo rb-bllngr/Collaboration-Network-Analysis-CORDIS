@@ -9,11 +9,18 @@ source("Programs/download_data.R")
 # Step 3: Load and combine project and organisation data from both programs
 source("Programs/merge_data_sets.R")
 
-# Step 4: First visualization of network data
+# Step 4: Build all variants of the networks
+source("Programs/build_networks.R")
+
+# Step 5: First visualization of network data
 source("Programs/visualize_network_map.R")
 
-# Step 5: Perform degree, degree distribution, and degree correlation analysis
+# Step 6: Perform degree, degree distribution, and degree correlation analysis
 source("Programs/network_degrees.R")
 
-# Step 6: Perform centrality (degree, betweenness, closeness, eigenvector) analysis
+# Step 7: Perform centrality (degree, betweenness, closeness, eigenvector) analysis
 source("Programs/network_centrality.R")
+
+# Step 8: Perform cohesion (component structure, density, coreness, clustering coefficient,
+#         average path length, small-world coefficient) analysis
+source("Programs/network_cohesion.R")
