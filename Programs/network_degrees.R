@@ -3,8 +3,8 @@
 
 # Load networks for each programme (take weighted version for possibility to extract
 # information on graph strength)
-h2020 <- readRDS(file.path(PATHS$DATA_INT, "network_h2020_weighted.RDS"))
-horizon <- readRDS(file.path(PATHS$DATA_INT, "network_horizon_weighted.RDS"))
+h2020 <- readRDS(file.path(PATHS$DATA_INT, "network_h2020.RDS"))$weighted
+horizon <- readRDS(file.path(PATHS$DATA_INT, "network_horizon.RDS"))$weighted
 networks <- list(H2020 = h2020, HORIZON = horizon)
 
 # Compute degrees and strength for both programme networks and connect into one table

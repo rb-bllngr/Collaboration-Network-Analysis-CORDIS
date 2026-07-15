@@ -10,14 +10,10 @@ horizon <- readRDS(file.path(PATHS$DATA_INT, "horizon.RDS"))
 programmes <- list(cordis = cordis, h2020 = h2020, horizon = horizon)
 networks <- lapply(programmes, build_collaboration_network)
 
-# Save the two versions for each network for to its own .RDS file, named consistently
+# Save the two versions (unweighted and weighted) for each network to one .RDS file
+# containing a list of the networks, named consistently
 for(name in names(networks)) {
-  # Save the weighted version for each network
-  saveRDS(networks[[name]]$weighted,
-          file.path(PATHS$DATA_INT, paste0("network_", name, "_weighted.RDS")))
-  # Save the unweighted version for each network
-  saveRDS(networks[[name]]$unweighted,
-          file.path(PATHS$DATA_INT, paste0("network_", name, "_unweighted.RDS")))
+  saveRDS(networks[[name]], file.path(PATHS$DATA_INT, paste0("network_", name, ".RDS")))
 }
 
 # Sanity checks for CORDIS network
