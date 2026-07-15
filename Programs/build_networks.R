@@ -20,8 +20,7 @@ for(name in names(networks)) {
           file.path(PATHS$DATA_INT, paste0("network_", name, "_unweighted.RDS")))
 }
 
-
-# --- Sanity checks for CORDIS network: --------------------------------------------------
+# Sanity checks for CORDIS network
 graph_weighted <- networks[["cordis"]]$weighted
 graph_unweighted <- networks[["cordis"]]$unweighted
 message("\n --- Sanity checks ---")
@@ -32,8 +31,6 @@ message("Unweighted graph is unweigthed: ", !is_weighted(graph_unweighted))
 message("Edge weight range: ", min(E(graph_weighted)$weight),
         " to ", max(E(graph_weighted)$weight))
 message("Isolated nodes: ", sum(degree(graph_weighted) == 0))
-# TODO: SHOULD WE EXCLUDE THE ISOLATED NODES AS WE ARE LOOKING AT COLLABORATIONS OR KEEP
-# THEM (AS DEGREE OF 0 IMPLIES ORGANISATION IS SOLE ORGANISATION ON THE PROJECT)
 message("Graph is connected: ", is_connected(graph_weighted))
 message("Number of components: ", components(graph_weighted)$no)
 message("Size of largest component: ", max(components(graph_weighted)$csize))
