@@ -6,29 +6,16 @@ PATHS <- list(
   DATA_INT = "Data/Intermediate"
 )
 
-
-
 # Source helper functions
 source("functions.R")
 source("plot_styling.R")
 
+# TODO:
 # invisible(lapply(paths, dir.create, showWarnings = FALSE, recursive = TRUE))
 
 # List of CRAN packages. Every package needed for project beside default packages in
 # chronological order
 packages <- c(
-  # # Install packages
-  # "dplyr",
-  # "ggcorrplot",
-  # "knitr",
-  # "lubridate",
-  # "ranger",
-  # "RColorBrewer",
-  # "readr",
-  # "rmarkdown",
-  # "scales",
-  # "stringr"
-  
   # Install package for downloading data from EU Commission CORDIS' URLs
   "httr",
   # Install package for validating function input
@@ -42,7 +29,11 @@ packages <- c(
   # Install package for visualization of networks
   "ggplot2",
   # Install package for visualization if world map
-  "maps"
+  "maps",
+  # Install package for colorblind-friendly coloring scales
+  "RColorBrewer",
+  # Install package for assembling plots into grids
+  "patchwork" # TODO: IS THIS STILL USED? ORIGINAL USAGE IN 'NETWORK_ROLES.R' IS REMOVED?
 )
 
 # Set CRAN mirror
