@@ -5,7 +5,7 @@
 # they are required for different centrality measure calculations) and save for quick access
 networks <- list(H2020 = readRDS(file.path(PATHS$DATA_INT, "network_h2020.RDS")),
                  HORIZON = readRDS(file.path(PATHS$DATA_INT, "network_horizon.RDS")))
-programmes <- c("H2020", "HORIZON")
+programmes <- names(networks)
 
 # Initialize list for results
 results <- list()
@@ -222,8 +222,10 @@ dt_fourway_long <- rbindlist(lapply(programmes, function(prog) {
                           value.name = "corr")
   dt_fourway_corr[, programme := prog]
   
-  # Order the centrality measure, so they appear in determined order in plots
+  # Order the centrality measure, so they appear in determined order in plots by mapping
+  # this scripts specific names onto generalized order (cf. 'plot_styling.R')
   centr_order <- c("degree_norm", "betweenness_unweighted_norm", "closeness_unweighted", "eigenvector_unweighted")
+  centr_mapping <- setNames(mapping_centrality[order_centrality], centr_order)
   dt_fourway_corr[, ":="(
     centrality1 = factor(centrality1, levels = centr_order),
     centrality2 = factor(centrality2, levels = rev(centr_order))
@@ -231,20 +233,14 @@ dt_fourway_long <- rbindlist(lapply(programmes, function(prog) {
   dt_fourway_corr
 }))
 
-# Define German names for axes in plots
-mapping_axis <- c("degree_norm" = "Grad",
-                  "betweenness_unweighted_norm" = "Betweenness",
-                  "closeness_unweighted" = "Closeness",
-                  "eigenvector_unweighted" = "Eigenvector")
-
 # Correlation heatmap visualisation, faceted by programme
 plot_corr_heatmap <-
   ggplot(dt_fourway_long, aes(x = centrality1, y = centrality2, fill = corr)) +
   geom_tile() +
   geom_text(aes(label = round(corr, 2)), color = lmu_colors$white, size = 3) +
   scale_fill_gradientn(colors = RColorBrewer::brewer.pal(11, "RdBu"), limits = c(-1, 1)) +
-  scale_x_discrete(labels = mapping_axis) +
-  scale_y_discrete(labels = mapping_axis) +
+  scale_x_discrete(labels = centr_mapping) +
+  scale_y_discrete(labels = centr_mapping) +
   labs(x = NULL, y = NULL, fill = "Spearman-Korrelationskoeffizient") +
   facet_wrap(~ programme) +
   theme_lmu() +
