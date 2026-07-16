@@ -78,6 +78,12 @@ lmu_error_color <- function() {
   lmu_colors$red
 }
 
+# --- Label and Order Helpers ------------------------------------------------------------
+
+order_centrality <- c("degree", "betweenness", "closeness", "eigenvector")
+mapping_centrality <- c(degree = "Grad", betweenness = "Betweenness",
+                        closeness = "Closeness", eigenvector = "Eigenvektor")
+
 # --- Saving Function --------------------------------------------------------------------
 
 save_plot_lmu <- function(plot, filename, folder = "Plots", width = 10, height = 5.625,
@@ -88,5 +94,5 @@ save_plot_lmu <- function(plot, filename, folder = "Plots", width = 10, height =
 
   full_path <- file.path(folder, filename)
   ggsave(filename = full_path, plot = plot, width = width, height = height, dpi = dpi, bg = bg)
-  message("Plot gespeichert unter: ", full_path)
+  message("Plot saved under: ", full_path)
 }
