@@ -236,4 +236,43 @@ print(dt_smallworld)
 
 # Small-world coefficient comparison of observed values with reference graphs for both,
 # the clustering coefficient and average path length
-# TODO: 
+# Assemble all needed information from the simulation process into one data.table
+dt_smallworld_simulation <- rbindlist(lapply(programmes, function(prog) {
+  rbindlist(list(
+    data.table(
+      programme = prog,
+      model = "Erdos-Renyi",
+      clustering = results_smallworld_simulation[[prog]]$ErdosRenyi$clustering,
+      pathlength = results_smallworld_simulation[[prog]]$ErdosRenyi$pathlength
+    ),
+    data.table(
+      programme = prog,
+      model = "Konfigurationsmodell",  # i.e. generalized, specifically Viger-Latapy variant
+      clustering = results_smallworld_simulation[[prog]]$VigerLatapy$clustering,
+      pathlength = results_smallworld_simulation[[prog]]$VigerLatapy$pathlength
+    )
+  ))
+}))
+
+# Histogram of clustering of simulated values in comparison to observed values
+plot_smallworld_clustering <-
+  ggplot(dt_smallworld_simulation, aes(x = clustering)) +
+  geom_histogram(position = "identity", bins = 100) +
+  geom_vline(data = dt_smallworld,
+             mapping = aes(xintercept = clustering_observed),
+             color = lmu_default_color(), linetype = "twodash") +
+  labs(x = "Clustering-Koeffizient", y = "Anzahl an Simulationen") +
+  facet_grid(programme ~ model) +
+  theme_lmu()
+save_plot_lmu(plot_smallworld_clustering, "cohesion_smallworld_clustering.png")
+
+# Histogram of average path length of simulated values in comparison to observed values
+plot_smallworld_pathlength <-
+  ggplot(dt_smallworld_simulation, aes(x = pathlength)) +
+  geom_histogram(position = "identity", bins = 100) +
+  geom_vline(data = dt_smallworld, mapping = aes(xintercept = pathlength_observed),
+             color = lmu_default_color(), linetype = "twodash") +
+  labs(x = "Mittlere Länge der kürzesten Pfade", y = "Anzahl an Simulationen") +
+  facet_grid(programme ~ model) +
+  theme_lmu()
+save_plot_lmu(plot_smallworld_pathlength, "cohesion_smallworld_pathlength.png")
