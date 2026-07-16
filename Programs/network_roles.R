@@ -72,7 +72,8 @@ plot_coordinator_centrality <-
   facet_grid(measure ~ programme, scales = "free_y",
              labeller = labeller(measure = mapping_centrality)) +
   theme_lmu()
-save_plot_lmu(plot_coordinator_centrality, "coordinator_centrality.png", width = 8, height = 8)
+save_plot_lmu(plot_coordinator_centrality, "roles_centrality_coordinator.png",
+              width = 8, height = 8)
 
 # Alternatively, one plot per centrality measure, each with programme as vertical faceting
 # plot_coordinator_centrality <- lapply(order_centrality, function(m) {
