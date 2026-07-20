@@ -7,6 +7,7 @@
 #' 4. build_collaboration_network
 #' 5. expand_subgraph_to_full_graph
 #' 6. checkpoint_RDS
+#' 7. simulate_random_graph
 
 # --- Function 1 -------------------------------------------------------------------------
 #' @description
@@ -127,7 +128,7 @@ load_xlsx <- function(subdirectory, filename) {
 #'
 #' Inputs:
 #' @param dt data.table object. Must contain at least columns projectID, organisationID,
-#'                              and role.
+#'                              role, and country.
 #'
 #' Output:
 #' @returns A list with two igraph objects, one weighted ($weighted) and one unweighted
@@ -138,12 +139,12 @@ build_collaboration_network <- function(dt) {
   require(checkmate)
   require(igraph)
   assertDataTable(dt)
-  assertNames(names(dt), must.include = c("projectID", "organisationID", "role"))
+  assertNames(names(dt),
+              must.include = c("projectID", "organisationID", "role", "country"))
 
   # Build the participation table of organisations: Retain only the columns needed for
   # constructing the uni-modal network plus columns used as node-level attributes
-  network <- dt[, .(projectID, organisationID, role)]
-  # TODO: ADD MORE ATTRIBUTES IF NEEDED, REMEMBER TO UPDATE FUNCTION DESCRIPTION ACCORDINGLY
+  network <- dt[, .(projectID, organisationID)]
 
   # Self-join the network to get all pairs of co-participating organisations. Only the pairs
   # where organisationID < i.organisationID are kept to avoid duplicates in undirected graph
@@ -158,8 +159,16 @@ build_collaboration_network <- function(dt) {
   # can theoretically perform different roles in the same project)
   nodes <- dt[, .(
     n_proj  = uniqueN(projectID),
-    n_coord = sum(role == "coordinator")
+    n_coord = sum(role == "coordinator"),
+    country = first(country)
   ), by = organisationID]
+
+  # Run diagnostics on country information: flag organisations whose rows differ on country
+  if (dt[, uniqueN(country), by = organisationID][V1 > 1, .N] > 0) {
+    message(dt[, uniqueN(country), by = organisationID][V1 > 1, .N],
+            " organisations have inconsistent country attributes across rows. First non-",
+            "missing valuse used per organisation.")
+  }
 
   # Make igraph network objects
   graph_weighted <- graph_from_data_frame(edges, directed = FALSE, vertices = nodes)
