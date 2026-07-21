@@ -39,26 +39,22 @@ centrality <- list(
   eigenvector = list(name = "eigenvector_unweighted", giant_comp = TRUE)
 )
 
+# Get access variable saved separately
+centrality_names <- setNames(names(centrality), sapply(centrality, "[[", "name"))
+
 # Convert to long format data.table for faceting by measure and programme, later on
-dt_roles_long <- rbindlist(lapply(names(centrality), function(measure) {
-  # Filter to giant component-only if individual measure is restricted to it
-  if(centrality[[measure]]$giant_comp == TRUE) {
-    dt_measure <- dt_roles[in_giant_comp == TRUE]
-  } else {
-    dt_measure <- dt_roles
-  }
-
-  # Reshape the data.table
-  data.table(
-    programme = dt_measure$programme,
-    n_coordinator = dt_measure$n_coordinator,
-    measure = measure,
-    value = dt_measure[[centrality[[measure]]$name]]
-  )
-}))
-
-# Determine order for centrality measures
-dt_roles_long[, measure := factor(measure, levels = order_centrality)]
+dt_roles_long <- melt(
+  dt_roles,
+  id.vars = c("programme", "n_coordinator"),
+  measure.vars = sapply(centrality, FUN = "[[", "name"),
+  variable.name = "column_temp",
+  value.name = "value",
+  variable.factor = FALSE,
+  # Filter out all NAs, i.e. nodes outside the giant component
+  na.rm = TRUE
+)
+dt_roles_long[, measure := factor(centrality_names[column_temp], levels = order_centrality)]
+dt_roles_long[, column_temp := NULL]
 
 # Scatter plots of each centrality measure vs. coordinator counts, programme-specific 
 plot_coordinator_centrality <-
@@ -439,4 +435,3 @@ for (name in names(centrality)) {
 ##########################################################################################
 # TODO: FIND THE BEST WAY TO DETERMINE SCALING AND AXIS-RANGE FOR ALL FOUR MEASURES ######
 ##########################################################################################
-
