@@ -83,6 +83,35 @@ lmu_error_color <- function() {
 order_centrality <- c("degree", "betweenness", "closeness", "eigenvector")
 mapping_centrality <- c(degree = "Grad", betweenness = "Betweenness",
                         closeness = "Closeness", eigenvector = "Eigenvektor")
+eu27 <- c(BE = "Belgien",
+          BG = "Bulgarien",
+          DK = "Dänemark",
+          DE = "Deutschland",
+          EE = "Estland",
+          FI = "Finnland",
+          FR = "Frankreich",
+          GR = "Griechenland",
+          IE = "Irland",
+          IT = "Italien",
+          HR = "Kroatien",
+          LV = "Lettland",
+          LT = "Litauen",
+          LU = "Luxemburg",
+          MT = "Malta",
+          NL = "Niederlande",
+          AT = "Österreich",
+          PL = "Polen",
+          PT = "Portugal",
+          RO = "Rumänien",
+          SE = "Schweden",
+          SK = "Slowakei",
+          SI = "Slowenien",
+          ES = "Spanien",
+          CZ = "Tschechien",
+          HU = "Ungarn",
+          CY = "Zypern"
+)
+eu28 <- c(eu27[1:26], UK = "Vereinigtes Königreich", eu27[27])
 
 # --- Saving Function --------------------------------------------------------------------
 
