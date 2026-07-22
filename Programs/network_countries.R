@@ -122,8 +122,8 @@ for (prog in programmes) {
            new = c("n_organisations_i", "sum_degree_i", "n_organisations_j", "sum_degree_j"))
 
   # Compute block-density, i.e. observed organisation-pairs relative to maximum possible
-  #     - Cross country (C_i != C_j): n_organisations_i x n_organisations_j
-  #     - Same country (C_i == C_j): use binomial coefficient to calculate the amount of
+  #     - cross-country (C_i != C_j): n_organisations_i x n_organisations_j
+  #     - within-country (C_i == C_j): use binomial coefficient to calculate the amount of
   #       combinations possible for 'choose(n, k)', meaning choose k elements out of a set
   #       of n elements where order does not matter
   dt_density[, pairs_max := fifelse(country_i == country_j,
@@ -139,9 +139,9 @@ for (prog in programmes) {
   
   # Compute configuration model density, i.e. the expected number of edges between pair of
   # countries under the configuration model
-  #     - Cross country (C_i != C_j): sum of degrees for country i multiplied by sum of
+  #     - cross-country (C_i != C_j): sum of degrees for country i multiplied by sum of
   #       degrees for country j, divided by twice the number of all edges (cf. Newman, 2006)
-  #     - Same country (C_i == C_j): sum of degree for country i multiplied by sum of
+  #     - within-country (C_i == C_j): sum of degree for country i multiplied by sum of
   #       degrees for country i (= squared), divided by twice the doubled number of all
   #       edges to prevent double-counting of pairs
   dt_density[, edges_expected := fifelse(country_i == country_j,
@@ -153,7 +153,29 @@ for (prog in programmes) {
                                          NA_real_,
                                          edges_expected / pairs_max)]
 
-  # TODO: DO I WANT TO INCLUDE ANOTHER MEASUREMENT HERE?
+  # Compute collaboration preference ratio
+  dt_density[, collab_preference := fifelse(density_config == 0,
+                                            NA_real_,
+                                            density_observed / density_config)]
+
+  # Interactions between countries as the observed cross-country density, normalized by the
+  # arithmetic mean density of the respective countries' internal (within-country) density.
+  # NA where within-country density is NA itself (i.e. country with only one organisation).
+  dt_density_within <- dt_density[country_i == country_j, .(country_i, density_observed)]
+  setnames(dt_density_within,
+           old = c("country_i", "density_observed"), new = c("country", "density_within"))
+
+  dt_density <- merge(dt_density, dt_density_within, by.x = "country_i", by.y = "country")
+  dt_density <- merge(dt_density, dt_density_within, by.x = "country_j", by.y = "country")
+  setnames(dt_density,
+           old = c("density_within.x", "density_within.y"),
+           new = c("density_within_i", "density_within_j"))
+
+  # Calculate relative density
+  dt_density[,
+    density_relative := density_observed / (1/2 * (density_within_i + density_within_j))
+  ]
+  # Note: Over 1/3 of the entries end up being NAs...
 
   # Assemble results into pre-defined lists
   results_edges[[prog]] <- dt_country_pairs[, programme := prog]
@@ -163,3 +185,17 @@ for (prog in programmes) {
 # Combine programme-specific computations into one data.table each
 dt_country_pairs <- rbindlist(results_edges)
 dt_country_density <- rbindlist(results_density)
+
+# Rank the most common country combinations once by collaborating organisation pairs and
+# once by shared-project weight (constrained on cross-country) per programme
+top_ranks_pairs <- dt_country_pairs[country_i != country_j][
+  order(programme, -n_organisation_pairs)
+][, .SD[1:10], by = programme]
+print(top_ranks_pairs)
+
+top_ranks_weight <- dt_country_pairs[country_i != country_j][
+  order(programme, -sum_weight)
+][, .SD[1:10], by = programme]
+print(top_ranks_weight)
+
+# 
