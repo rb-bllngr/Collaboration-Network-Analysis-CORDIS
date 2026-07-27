@@ -33,7 +33,9 @@ packages <- c(
   # Install package for colorblind-friendly coloring scales
   "RColorBrewer",
   # Install package for assembling plots into grids
-  "patchwork" # TODO: IS THIS STILL USED? ORIGINAL USAGE IN 'NETWORK_ROLES.R' IS REMOVED?
+  "patchwork",
+  # Install package for labelling in plots
+  "ggrepel"
 )
 
 # Set CRAN mirror
