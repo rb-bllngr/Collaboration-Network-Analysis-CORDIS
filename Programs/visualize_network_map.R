@@ -17,6 +17,7 @@ nodes <- cordis[!is.na(geolocation) & geolocation != "",
 # Divide geolocation into latitude and longitude for each organisation
 nodes[, c("latitude", "longitude") := tstrsplit(geolocation, ",", type.convert = TRUE)]
 nodes[, geolocation := NULL]
+saveRDS(nodes, file.path(PATHS$DATA_INT, "geodata.RDS"))
 
 # Convert edges from igraph object to data.table object and connect the organisations
 # according to their edge data
