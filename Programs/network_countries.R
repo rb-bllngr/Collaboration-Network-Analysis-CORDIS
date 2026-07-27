@@ -198,4 +198,316 @@ top_ranks_weight <- dt_country_pairs[country_i != country_j][
 ][, .SD[1:10], by = programme]
 print(top_ranks_weight)
 
-# 
+
+# Now, including centrality into country analysis. Starting by merging country data on an
+# organisational level with centrality data computed and saved in 'network_centrality.R'
+dt_centrality <- readRDS(file.path(PATHS$DATA_INT, "centrality.RDS"))
+
+dt_centrality_organisations <- rbindlist(lapply(programmes, function(prog) {
+  # Take needed organisational country information ...
+  dt_temp <- data.table(
+    programme = prog,
+    organisationID = V(networks[[prog]]$unweighted)$name,
+    country = V(networks[[prog]]$unweighted)$country
+  )
+  dt_temp <- dt_temp[is.na(country) == FALSE & grepl(pattern = "^[A-Z]{2}$", country)]
+
+  # ... and merge with the from other script imported centrality data
+  merge(dt_temp, dt_centrality[programme == prog], by = c("programme", "organisationID"))
+}))
+
+# Recall centrality overview from 'network_roles.R'
+centrality <- list(
+  degree = list(name = "degree_norm", giant_comp = FALSE),
+  betweenness = list(name = "betweenness_unweighted_norm", giant_comp = FALSE),
+  closeness = list(name = "closeness_unweighted", giant_comp = TRUE),
+  eigenvector = list(name = "eigenvector_unweighted", giant_comp = TRUE)
+)
+
+# Aggregate the centrality measure on country level
+dt_centrality_country <- rbindlist(lapply(programmes, function(prog) {
+  rbindlist(lapply(names(centrality), function(measure) {
+    dt_prog <- dt_centrality_organisations[programme == prog]
+
+    # If centrality measure requires it, restrict to giant component
+    if (centrality[[measure]]$giant_comp == TRUE) {
+      dt_prog <- dt_prog[in_giant_comp == TRUE]
+    }
+
+    # Compute aggregated centrality measures
+    dt_aggregate <- dt_prog[, .(
+      n_organisations = .N,
+      centr_sum = sum(.SD[[1]], na.rm = TRUE),
+      centr_mean = mean(.SD[[1]], na.rm = TRUE)
+    ), by = country, .SDcols = centrality[[measure]]$name]
+
+    dt_aggregate[, centr_share := centr_sum / sum(centr_sum)]
+    dt_aggregate[, ":=" (programme = prog, measure = measure)]
+    dt_aggregate
+  }))
+}))
+
+# Convert measures to factor again and add EU-country flag for visualization purposes
+dt_centrality_country[, measure := factor(measure, levels = order_centrality)]
+dt_centrality_country[, isEU := fifelse(programme == "H2020",
+                                        country %in% names(eu28), country %in% names(eu27))]
+print(dt_centrality_country[order(programme, measure, -centr_sum)])
+
+# Visualize ranking of the top-n countries by size-normalized centrality measures
+top_ranks_n <- 20
+for (prog in programmes) {
+  plots_ranking <- list()
+
+  for(name in names(centrality)) {
+  dt_ranking <- dt_centrality_country[(programme == prog) & (measure == name)][
+    order(-centr_mean)][1:min(top_ranks_n, .N)]
+  
+  plots_ranking[[name]] <-
+    ggplot(dt_ranking, aes(x = reorder(country, centr_mean), y = centr_mean, fill = isEU)) +
+    geom_col() +
+    coord_flip() +
+    scale_y_continuous(labels = scales::label_number(accuracy = 0.00001, drop0trailing = TRUE),
+                       n.breaks = 3) +
+    scale_fill_manual(values = colorblindfriendly(),
+                      labels = c("Kein Mitglied der Europäischen Union",
+                                 "Mitglied der Europäischen Union")) +
+    labs(x = NULL, fill = NULL,
+         y = paste0("Mittlere normierte Zentralität je Organisation"),
+         title = mapping_centrality[[name]]) +
+    theme_lmu() +
+    theme(plot.title = element_text(face = "plain", hjust = 0.5, size = 12))
+  }
+
+  # Assemble programme-plot with all four centrality measures
+  plot_combined_ranks <- wrap_plots(plots_ranking, ncol = 4, guides = "collect", axis_titles = "collect") &
+    theme(legend.position = "bottom")
+  save_plot_lmu(plot_combined_ranks, paste0("countries_ranking_", tolower(prog), ".png"))
+}
+
+# Visualize the ranking evolution from H2020 to HORIZON, per measure (restricted to EU
+# countries, as many countries in top ranking positions are non-EU but programmes are directed
+# at collaboration opportunities for EU countries)
+# Note: As the United Kingdom has left the European Union in 2020 due to BREXIT, the UK
+#       would not be featured as EU member in HORIZON like in H2020. For comparability
+#       reasons within the ranking evolution plot, the UK is going to be treated as EU
+dt_rank_EU <- dt_centrality_country[(isEU == TRUE) | (country == "UK")]
+dt_rank_EU_mean <- copy(dt_rank_EU)[, rank := frank(-centr_mean), by = .(programme, measure)]
+
+# Subset the long format ranking data to drop centrality values and only keep ranks; plus
+# add in the visually appealing German country names instead of solely ISO2 codes
+# dt_rank_EU_mean <- dt_rank_EU_mean[order(programme, country, measure),
+#                                    .(country, measure, isEU, programme, rank)]
+dt_rank_EU_mean[, programme := factor(programme, levels = names(networks))]
+dt_rank_EU_mean[, country_name := fifelse(country == "UK", eu28[["UK"]], eu27[country])]
+
+# Plot the four centrality measure ranking evolution from H2020 to HORIZON and build all
+# of them together
+plots_evolution_mean <- list()
+for (name in names(centrality)) {
+  plots_evolution_mean[[name]] <-
+    ggplot(dt_rank_EU_mean[measure == name], aes(x = programme, y = rank, group = country)) +
+    geom_line(alpha = 1) +
+    geom_point(shape = 21, size = 6, fill = lmu_colors$white, color = lmu_default_color()) +
+    geom_text(aes(label = rank), size = 3) +
+    # Add labels for circles showing the ranks with the country names
+    geom_text_repel(data = dt_rank_EU_mean[(measure == name) & (programme == "HORIZON")],
+                    aes(label = country_name), segment.colour = NA,
+                    nudge_x = 0.05, direction = "y", hjust = 0, size = 3) +
+    scale_x_discrete(expand = expansion(add = c(0.1, 0.5))) +
+    scale_y_reverse() +
+    labs(x = NULL, y = "Rang (nach mittlerer Zentralität)",
+         title = mapping_centrality[[name]]) +
+    theme_lmu() +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          axis.text.y = element_blank(),
+          plot.title = element_text(face = "plain", hjust = 0.5, size = 12))
+}
+plot_combined_evolution_mean <- wrap_plots(plots_evolution_mean, ncol = 4, axis_titles = "collect")
+save_plot_lmu(plot_combined_evolution_mean, "countries_ranking_evolution_mean.png",
+              width = 20, height = 8)
+
+# Plot the same four centrality measure ranking evolution from H2020 to HORIZON, but for
+# summed centrality, not mean centrality
+dt_rank_EU_sum <- copy(dt_rank_EU_mean)[, rank := frank(-centr_sum), by = .(programme, measure)]
+
+plots_evolution_sum <- list()
+for (name in names(centrality)) {
+  plots_evolution_sum[[name]] <-
+    ggplot(dt_rank_EU_sum[measure == name], aes(x = programme, y = rank, group = country)) +
+    geom_line(alpha = 1) +
+    geom_point(shape = 21, size = 6, fill = lmu_colors$white, color = lmu_default_color()) +
+    geom_text(aes(label = rank), size = 3) +
+    # Add labels for circles showing the ranks with the country names
+    geom_text_repel(data = dt_rank_EU_sum[(measure == name) & (programme == "HORIZON")],
+                    aes(label = country_name), segment.colour = NA,
+                    nudge_x = 0.05, direction = "y", hjust = 0, size = 3) +
+    scale_x_discrete(expand = expansion(add = c(0.1, 0.5))) +
+    scale_y_reverse() +
+    labs(x = NULL, y = "Rang (nach summierter Zentralität)",
+         title = mapping_centrality[[name]]) +
+    theme_lmu() +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.major.y = element_blank(),
+          axis.text.y = element_blank(),
+          plot.title = element_text(face = "plain", hjust = 0.5, size = 12))
+}
+plot_combined_evolution_sum <- wrap_plots(plots_evolution_sum, ncol = 4, axis_titles = "collect")
+save_plot_lmu(plot_combined_evolution_sum, "countries_ranking_evolution_sum.png",
+              width = 20, height = 8)
+
+# Scatter plot of centrality share vs. organisation count
+for (name in names(centrality)) {
+  plot_share_size <-
+    ggplot(dt_centrality_country[measure == name],
+           aes(x = n_organisations, y = centr_share * 100, color = isEU)) +
+    geom_point(size = 2, alpha = 0.5) +
+    scale_x_log10() +
+    scale_color_manual(values = colorblindfriendly(),
+                       labels = c("Kein Mitglied der Europäischen Union",
+                                  "Mitglied der Europäischen Union")) +
+    labs(x = "Anzahl an Organisationen [log10]", y = "Anteil an Gesamtzentralität [%]",
+         color = NULL, title = mapping_centrality[[name]]) +
+    facet_wrap(~ programme) +
+    theme_lmu() +
+    theme(legend.position = "bottom",
+          plot.title = element_text(face = "plain", hjust = 0.5, size = 12))
+
+  save_plot_lmu(plot_share_size, paste0("countries_share_size_", name, ".png"))
+}
+
+# Visualize network geographically (as map) with built in country-level information for
+# node appearance
+# Import CORDIS' geodata to access geolocation for organisations
+dt_geo <- readRDS(file.path(PATHS$DATA_INT, "geodata.RDS"))
+
+# Calculate the country centroids of mean latitude and longitude across a country's
+# organisations with their geolocations
+dt_centroid <- merge(dt_country[, .(programme, organisationID, country)], dt_geo,
+                              by = "organisationID")
+message(nrow(dt_country) - nrow(dt_centroid), " organisation-programme ",
+        "combinations have been excluded due to missing geolocation for organisation")
+
+dt_centroid <- dt_centroid[, .(
+  latitude = mean(latitude, na.rm = TRUE),
+  longitude = mean(longitude, na.rm = TRUE)
+), by = .(programme, country)]
+
+# Initialize lists for results
+results_connections <- list()
+results_nodes <- list()
+
+for (prog in programmes) {
+  # Extract all cross-country pairs
+  dt_edges_prog <- dt_country_pairs[(programme == prog) & (country_i != country_j)]
+
+  # Reduce centroid data to programme-specific
+  dt_centroid_prog <- dt_centroid[programme == prog]
+
+  # Inform about countries being excluded due to fully missing geolocations
+  countries_prog <- sort(unique(c(dt_edges_prog$country_i, dt_edges_prog$country_j)))
+  countries_missing <- setdiff(countries_prog, dt_centroid_prog$country)
+  if(length(countries_missing) > 0) {
+    message("For ", prog, ", exclude countries without geolocation for any organisation: ",
+            paste(countries_missing, collapse = ", "))
+  }
+
+  # Exclude these countries from visualisation of edges
+  dt_edges_prog <- dt_edges_prog[(country_i %in% dt_centroid_prog$country) &
+                                   (country_j %in% dt_centroid_prog$country)]
+
+  # Exclude the same countries from centroid data
+  countries_prog <- sort(unique(c(dt_edges_prog$country_i, dt_edges_prog$country_j)))
+  dt_centroid_prog <- dt_centroid_prog[country %in% countries_prog]
+
+  # Build the graph network from the centroid and organisation pair data
+  graph_country <- graph_from_data_frame(
+    # Data Frame containing edgelist in the first two columns with additional columns as
+    # edge attributes (here, weight)
+    dt_edges_prog[, .(country_i, country_j, n_organisation_pairs)],
+    directed = FALSE,
+    vertices = dt_centroid_prog[, .(country, latitude, longitude)]
+  )
+
+  # Assemble all node information available
+  dt_nodes_prog <- copy(dt_centroid_prog)
+  if(prog == "H2020") {
+    dt_nodes_prog[, isEU := country %in% names(eu28)]
+  } else {
+    dt_nodes_prog[, isEU := country %in% names(eu27)]
+  }
+  dt_nodes_prog[, degree := degree(graph_country)[country]]
+  results_nodes[[prog]] <- dt_nodes_prog
+
+  # Create the maximum spanning tree (MST). Because igraph's function 'mst()' computes
+  # the minimum spanning tree, weights are negated to produce maximum instead
+  graph_mst <- mst(graph_country, weights = -E(graph_country)$n_organisation_pairs)
+  dt_mst <- as.data.table(as_data_frame(graph_mst, what = "edges"))
+  dt_mst <- dt_mst[, .(country_i = pmin(from, to), country_j = pmax(from, to))]
+
+  # Additionally, take the N-1 overall strongest links between countries, independent of
+  # the maximum spanning tree
+  dt_strongest_Nminus1 <- dt_edges_prog[order(-n_organisation_pairs)][
+    1:(vcount(graph_country) - 1), .(country_i, country_j)
+  ]
+
+  # Collect results for both ways of determining most 'important' edges and merge with edge
+  # information for these edges
+  dt_connections <- merge(unique(rbind(dt_mst, dt_strongest_Nminus1)),
+                          dt_edges_prog, by = c("country_i", "country_j"))
+
+  results_connections[[prog]] <- dt_connections
+}
+
+dt_graph_edges <- rbindlist(results_connections)
+dt_graph_nodes <- rbindlist(results_nodes)
+
+# Plot the geolocal representation of the countries in the programmes collaborating with
+# each other, while only showing the above selected most 'important' edges
+world <- map_data("world")
+
+for (prog in programmes) {
+  # Reduce data set to programme-specific during loop iteration again
+  dt_nodes_prog <- dt_graph_nodes[programme == prog]
+  dt_edges_prog <- dt_graph_edges[programme == prog]
+
+  # Merge node and edge information into one data.table
+  dt_map <- merge(dt_edges_prog, dt_nodes_prog[, .(country, latitude, longitude)],
+                  by.x = "country_i", by.y = "country")
+  dt_map <- merge(dt_map, dt_nodes_prog[, .(country, latitude, longitude)],
+                  by.x = "country_j", by.y = "country")
+  setnames(dt_map,
+           old = c("latitude.x", "longitude.x", "latitude.y", "longitude.y"),
+           new = c("latitude_i", "longitude_i", "latitude_j", "longitude_j"))
+
+  # Plot world map with organisations aggregated to countries on the map
+  plot_countries_map <- ggplot() +
+    geom_polygon(data = world, aes(x = long, y = lat, group = group),
+                 fill = lmu_colors$white, color = "grey85", linewidth = 0.2) +
+    geom_segment(data = dt_map,
+                 aes(x = longitude_i, y = latitude_i, xend = longitude_j, yend = latitude_j,
+                     linewidth = n_organisation_pairs),
+                 color = lmu_default_color(), alpha = 0.5) +
+    geom_point(data = dt_nodes_prog,
+               aes(x = longitude, y = latitude, size = degree, color = isEU, fill = isEU),
+               shape = 21) +
+    scale_fill_manual(values = scales::alpha(colorblindfriendly(), alpha = 0.5), guide = "none") +
+    scale_color_manual(values = colorblindfriendly(),
+                       labels = c("Kein Mitglied der Europäischen Union",
+                                 "Mitglied der Europäischen Union")) +
+    scale_size_continuous(range = c(0.5, 5)) +
+    scale_linewidth_continuous(range = c(0.1, 2), guide = "none") +
+    labs(size = "Grad (Anzahl an Ländern)", color = NULL) +
+    # coord_fixed(1.3) +
+    theme_void() +
+    theme(legend.position = "bottom",
+          plot.background = element_rect(fill = lmu_colors$white, color = NA),
+          panel.background = element_rect(fill = lmu_colors$white, color = NA))
+
+  # Save the plots
+  save_plot_lmu(plot_countries_map, paste0("countries_map_geographic_", tolower(prog), ".png"))
+}
+
+# TODO:
+#   - Programme-specific plots restricted to EU-countries
+#   - Programme-specific plots not with geographic but abstract layout
