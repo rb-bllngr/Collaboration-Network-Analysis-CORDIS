@@ -1,13 +1,16 @@
-# functions.R: contains all the self-written functions used in the project
+# functions.R: contains all the self-written, functions (re-)used in the project
 
 # --- List of functions ------------------------------------------------------------------
-#' 1. unzip_recursive
-#' 2. download_and_unzip
-#' 3. load_xlsx
-#' 4. build_collaboration_network
-#' 5. expand_subgraph_to_full_graph
-#' 6. checkpoint_RDS
-#' 7. simulate_random_graph
+#' 01. unzip_recursive
+#' 02. download_and_unzip
+#' 03. load_xlsx
+#' 04. build_collaboration_network
+#' 05. expand_subgraph_to_full_graph
+#' 06. checkpoint_RDS
+#' 07. simulate_random_graph
+#' 08. build_graph_fundamentals
+#' 09. build_country_plot_map
+#' 10. build_country_plot_abstract
 
 # --- Function 1 -------------------------------------------------------------------------
 #' @description
@@ -309,4 +312,220 @@ simulate_random_graph <- function(func_to_generate_graph, n_simulation = 100) {
 
   # Return data.table object with the fully-filled placeholder vector
   data.table(clustering = clustering, pathlength = pathlength)
+}
+
+# --- Function 8 -------------------------------------------------------------------------
+#' @description
+#' Builds the fundamental data of a country-pair collaboration network, consisting of the
+#' union of the maximum spanning tree AND the N-1 overall strongest links in the network.
+#' Additionally, it establishes a node-level table containing information about geolocation,
+#' EU-membership, and degree within the country graph. Optionally can restrict the data to
+#' EU-member countries only before taking the corresponding edges from the network.
+#'
+#' Inputs:
+#' @param dt_nodes data.table object. Contains country-level coordinates, averaged across
+#'                 all organisations within that country. Must contain at least columns
+#'                 programme, country, latitude, and longitude.
+#' @param dt_edges data.table object. Contains country-pair edges across all programmes.
+#'                 Must contain at least columns programme, country_i, country_j, and
+#'                 n_organisation_pairs.
+#' @param prog Character string. Either 'H2020' or 'HORIZON'; identifies programme being
+#'             looked at and used to subset input data.tables.
+#' @param eu Logical. Default FALSE; if TRUE, restricts edges to country-pairs where both
+#'           countries are EU members.
+#'
+#' Output:
+#' @returns A list with two data.table objects for information on the fundamental edges
+#'          with country-pair attributes ($edges) and node-level information ($nodes).
+
+build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE) {
+  # Check for valid input
+  require(checkmate)
+  require(igraph)
+  assertDataTable(dt_nodes)
+  assertNames(names(dt_nodes),
+              must.include = c("programme", "country", "latitude", "longitude"))
+  assertDataTable(dt_edges)
+  assertNames(names(dt_edges),
+              must.include = c("programme", "country_i", "country_j", "n_organisation_pairs"))
+  assertChoice(prog, choices = c("H2020", "HORIZON"))
+  assertFlag(eu)
+
+  # Subset both input data.table objects to current programme and exclude same-country pairs
+  dt_edges_prog <- dt_edges[(programme == prog) & (country_i != country_j)]
+  dt_nodes_prog <- dt_nodes[programme == prog]
+
+  # Set the ACTUAL EU-membership for the programme (used for coloring), but restrict the
+  # displayed countries to the EU-28 countries REGARDLESS of the current programme if the
+  # EU flag is applied, so both H2020 and HORIZON show the same set of countries
+  countries_EU <- if (prog == "H2020") names(eu28) else names(eu27)
+  if(eu) {
+    dt_edges_prog <- dt_edges_prog[(country_i %in% names(eu28)) &
+                                     (country_j %in% names(eu28))]
+  }
+
+  # Reduce data to countries with available averaged-geolocation data and inform about
+  # countries being excluded due to fully missing geolocations
+  countries_prog <- sort(unique(c(dt_edges_prog$country_i, dt_edges_prog$country_j)))
+  countries_missing <- setdiff(countries_prog, dt_nodes_prog$country)
+  if(length(countries_missing) > 0) {
+    message("For ", prog, ", exclude countries without geolocation for any organisation: ",
+            paste(countries_missing, collapse = ", "))
+  }
+
+  # Exclude these countries from visualisation of edges
+  dt_edges_prog <- dt_edges_prog[(country_i %in% dt_nodes_prog$country) &
+                                   (country_j %in% dt_nodes_prog$country)]
+  
+  # Exclude the same countries from the node-level data
+  countries_prog <- sort(unique(c(dt_edges_prog$country_i, dt_edges_prog$country_j)))
+  dt_nodes_prog <- dt_nodes_prog[country %in% countries_prog]
+
+  # Build the graph network from the centroid and organisation-pair data
+  graph_country <- graph_from_data_frame(
+    # Data Frame containing edgelist in the first two columns with additional columns as
+    # edge attributes (here: weight)
+    dt_edges_prog[, .(country_i, country_j, n_organisation_pairs)],
+    directed = FALSE,
+    vertices = dt_nodes_prog[, .(country, latitude, longitude)]
+  )
+
+  # Assemble all node information available
+  dt_nodes_prog[, isEU := country %in% countries_EU]
+  dt_nodes_prog[, degree := degree(graph_country)[country]]
+
+  # Create the maximum spanning tree (MST). Because igraph's function 'mst()' computes
+  # the minimum spanning tree, weights are negated to produce maximum instead
+  graph_mst <- mst(graph_country, weights = -E(graph_country)$n_organisation_pairs)
+  dt_mst <- as.data.table(as_data_frame(graph_mst, what = "edges"))
+  dt_mst <- dt_mst[, .(country_i = pmin(from, to), country_j = pmax(from, to))]
+
+  # Additionally, take the N-1 overall strongest links between countries, independent of
+  # the maximum spanning tree
+  dt_strongest_Nminus1 <- dt_edges_prog[order(-n_organisation_pairs)][
+    1:(vcount(graph_country) - 1), .(country_i, country_j)
+  ]
+
+  # Collect results for both ways of determining most 'important' edges and merge with edge
+  # information for these edges
+  dt_connections <- merge(unique(rbind(dt_mst, dt_strongest_Nminus1)),
+                          dt_edges_prog, by = c("country_i", "country_j"))
+
+  list(nodes = dt_nodes_prog, edges = dt_connections)
+}
+
+# --- Function 9 -------------------------------------------------------------------------
+#' @description 
+#' 
+#'
+#' Inputs:
+#' @param 
+#'
+#' Output:
+#' @returns 
+
+build_country_plot_map <- function(dt_nodes, dt_edges, world) {
+  # Check for valid input
+  require(checkmate)
+  assertDataTable(dt_nodes)
+  assertNames(names(dt_nodes),
+              must.include = c("country", "latitude", "longitude", "degree"))
+  assertDataTable(dt_edges)
+  assertNames(names(dt_edges),
+              must.include = c("country_i", "country_j", "n_organisation_pairs"))
+
+  # Merge node and edge information into one data.table
+  dt_map <- merge(dt_edges, dt_nodes[, .(country, latitude, longitude, isEU)],
+                  by.x = "country_i", by.y = "country")
+  dt_map <- merge(dt_map, dt_nodes[, .(country, latitude, longitude, isEU)],
+                  by.x = "country_j", by.y = "country")
+  setnames(dt_map,
+           old = c("latitude.x", "longitude.x", "isEU.x",
+                   "latitude.y", "longitude.y", "isEU.y"),
+           new = c("latitude_i", "longitude_i", "isEU_i",
+                   "latitude_j", "longitude_j", "isEU_j"))
+
+  # Map the colorblind-friendly coloring scale onto EU membership status
+  palette_isEU <- c("FALSE" = colorblindfriendly()[1], "TRUE" = colorblindfriendly()[2])
+
+  # Plot world map with organisations aggregated to countries on the map
+  ggplot() +
+    geom_polygon(data = world, aes(x = long, y = lat, group = group),
+                 fill = lmu_colors$white, colour = lmu_default_color(), linewidth = 0.2) +
+    # Alternatively, choose geom_segment for straight lines instead of curves!
+    geom_curve(data = dt_map,
+               aes(x = longitude_i, y = latitude_i, xend = longitude_j, yend = latitude_j,
+                   linewidth = n_organisation_pairs),
+               color = ifelse((dt_map$isEU_i == TRUE) & (dt_map$isEU_j == TRUE),
+                              palette_isEU[["TRUE"]],  # Edge between two EU members
+                              palette_isEU[["FALSE"]]),  # Edge at least one non-EU
+               curvature = 0.1, alpha = 0.5, show.legend = FALSE) +
+    geom_point(data = dt_nodes,
+               aes(x = longitude, y = latitude, size = degree, color = isEU, fill = isEU),
+               shape = 21) +
+    scale_fill_manual(values = scales::alpha(palette_isEU, alpha = 0.5), guide = "none") +
+    scale_color_manual(
+      values = palette_isEU,
+      labels = c("FALSE" = "Kein Mitglied der Europäischen Union",
+                 "TRUE" = "Mitglied der Europäischen Union"),
+      guide = guide_legend(position = "top", override.aes = list(shape = 16, size = 3))) +
+    scale_size_continuous(range = c(0.5, 5), guide = guide_legend(position = "bottom")) +
+    scale_linewidth_continuous(range = c(0.1, 2), guide = "none") +
+    labs(size = "Grad (Anzahl an Ländern)", color = NULL) +
+    theme_void() +
+    theme(legend.title = element_text(vjust = 0.6),
+          plot.background = element_rect(fill = lmu_colors$white, color = NA),
+          panel.background = element_rect(fill = lmu_colors$white, color = NA))
+}
+
+# --- Function 10 ------------------------------------------------------------------------
+#' @description 
+#' 
+#'
+#' Inputs:
+#' @param 
+#'
+#' Output:
+#' @returns 
+
+build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
+  # Check for valid input
+  require(checkmate)
+  require(ggraph)
+  require(tidygraph)
+  assertDataTable(dt_nodes)
+  assertNames(names(dt_nodes), must.include = c("country", "isEU", "degree"))
+  assertDataTable(dt_edges)
+  assertNames(names(dt_edges),
+              must.include = c("country_i", "country_j", "n_organisation_pairs"))
+  assertCount(seed)
+
+  # Build the graph network from the node and edge data
+  graph_abstract <- graph_from_data_frame(
+    dt_edges[, .(country_i, country_j, n_organisation_pairs)],
+    directed = FALSE,
+    vertices = dt_nodes[, .(country, isEU, degree)]
+  )
+
+  # Map the colorblind-friendly coloring scale onto EU membership status
+  palette_isEU <- c("FALSE" = colorblindfriendly()[1], "TRUE" = colorblindfriendly()[2])
+
+  # Plot abstract graph layout (i.e. Fruchterman-Reingold) using seed for reproducibility
+  set.seed(seed)
+  ggraph(graph_abstract, layout = "fr") +
+    geom_edge_link(aes(edge_width = n_organisation_pairs), color = "grey85") +
+    geom_node_point(aes(size = degree, color = isEU, fill = isEU), shape = 21) +
+    scale_fill_manual(values = scales::alpha(palette_isEU, alpha = 0.5), guide = "none") +
+    scale_color_manual(
+      values = palette_isEU,
+      labels = c("FALSE" = "Kein Mitglied der Europäischen Union",
+                 "TRUE" = "Mitglied der Europäischen Union"),
+      guide = guide_legend(position = "top", override.aes = list(shape = 16, size = 3))) +
+    scale_size_continuous(range = c(0.5, 5), guide = guide_legend(position = "bottom")) +
+    scale_edge_width_continuous(range = c(0.1, 2), guide = "none") +
+    labs(size = "Grad (Anzahl an Ländern)", color = NULL) +
+    theme_void() +
+    theme(legend.title = element_text(vjust = 0.6),
+          plot.background = element_rect(fill = lmu_colors$white, color = NA),
+          panel.background = element_rect(fill = lmu_colors$white, color = NA))
 }
