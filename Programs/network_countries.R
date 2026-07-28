@@ -393,121 +393,43 @@ dt_centroid <- dt_centroid[, .(
   longitude = mean(longitude, na.rm = TRUE)
 ), by = .(programme, country)]
 
-# Initialize lists for results
-results_connections <- list()
-results_nodes <- list()
-
-for (prog in programmes) {
-  # Extract all cross-country pairs
-  dt_edges_prog <- dt_country_pairs[(programme == prog) & (country_i != country_j)]
-
-  # Reduce centroid data to programme-specific
-  dt_centroid_prog <- dt_centroid[programme == prog]
-
-  # Inform about countries being excluded due to fully missing geolocations
-  countries_prog <- sort(unique(c(dt_edges_prog$country_i, dt_edges_prog$country_j)))
-  countries_missing <- setdiff(countries_prog, dt_centroid_prog$country)
-  if(length(countries_missing) > 0) {
-    message("For ", prog, ", exclude countries without geolocation for any organisation: ",
-            paste(countries_missing, collapse = ", "))
-  }
-
-  # Exclude these countries from visualisation of edges
-  dt_edges_prog <- dt_edges_prog[(country_i %in% dt_centroid_prog$country) &
-                                   (country_j %in% dt_centroid_prog$country)]
-
-  # Exclude the same countries from centroid data
-  countries_prog <- sort(unique(c(dt_edges_prog$country_i, dt_edges_prog$country_j)))
-  dt_centroid_prog <- dt_centroid_prog[country %in% countries_prog]
-
-  # Build the graph network from the centroid and organisation pair data
-  graph_country <- graph_from_data_frame(
-    # Data Frame containing edgelist in the first two columns with additional columns as
-    # edge attributes (here, weight)
-    dt_edges_prog[, .(country_i, country_j, n_organisation_pairs)],
-    directed = FALSE,
-    vertices = dt_centroid_prog[, .(country, latitude, longitude)]
-  )
-
-  # Assemble all node information available
-  dt_nodes_prog <- copy(dt_centroid_prog)
-  if(prog == "H2020") {
-    dt_nodes_prog[, isEU := country %in% names(eu28)]
-  } else {
-    dt_nodes_prog[, isEU := country %in% names(eu27)]
-  }
-  dt_nodes_prog[, degree := degree(graph_country)[country]]
-  results_nodes[[prog]] <- dt_nodes_prog
-
-  # Create the maximum spanning tree (MST). Because igraph's function 'mst()' computes
-  # the minimum spanning tree, weights are negated to produce maximum instead
-  graph_mst <- mst(graph_country, weights = -E(graph_country)$n_organisation_pairs)
-  dt_mst <- as.data.table(as_data_frame(graph_mst, what = "edges"))
-  dt_mst <- dt_mst[, .(country_i = pmin(from, to), country_j = pmax(from, to))]
-
-  # Additionally, take the N-1 overall strongest links between countries, independent of
-  # the maximum spanning tree
-  dt_strongest_Nminus1 <- dt_edges_prog[order(-n_organisation_pairs)][
-    1:(vcount(graph_country) - 1), .(country_i, country_j)
-  ]
-
-  # Collect results for both ways of determining most 'important' edges and merge with edge
-  # information for these edges
-  dt_connections <- merge(unique(rbind(dt_mst, dt_strongest_Nminus1)),
-                          dt_edges_prog, by = c("country_i", "country_j"))
-
-  results_connections[[prog]] <- dt_connections
-}
-
-dt_graph_edges <- rbindlist(results_connections)
-dt_graph_nodes <- rbindlist(results_nodes)
-
 # Plot the geolocal representation of the countries in the programmes collaborating with
 # each other, while only showing the above selected most 'important' edges
 world <- map_data("world")
 
 for (prog in programmes) {
-  # Reduce data set to programme-specific during loop iteration again
-  dt_nodes_prog <- dt_graph_nodes[programme == prog]
-  dt_edges_prog <- dt_graph_edges[programme == prog]
+  for (scope in c("world", "EU")) {
+    data <- build_graph_fundamentals(dt_nodes = dt_centroid,
+                                     dt_edges = dt_country_pairs,
+                                     prog = prog,
+                                     eu = (scope == "EU"))
 
-  # Merge node and edge information into one data.table
-  dt_map <- merge(dt_edges_prog, dt_nodes_prog[, .(country, latitude, longitude)],
-                  by.x = "country_i", by.y = "country")
-  dt_map <- merge(dt_map, dt_nodes_prog[, .(country, latitude, longitude)],
-                  by.x = "country_j", by.y = "country")
-  setnames(dt_map,
-           old = c("latitude.x", "longitude.x", "latitude.y", "longitude.y"),
-           new = c("latitude_i", "longitude_i", "latitude_j", "longitude_j"))
+    # Create all different versions of country-map plotting scheme and save relevant ones
+    plot_geographic <- build_country_plot_map(data$nodes, data$edges, world)
+    if (scope == "world") {
+      save_plot_lmu(plot_geographic,
+                    paste0("countries_map_geographic_", tolower(prog), "_", scope, ".png"))
+    }
 
-  # Plot world map with organisations aggregated to countries on the map
-  plot_countries_map <- ggplot() +
-    geom_polygon(data = world, aes(x = long, y = lat, group = group),
-                 fill = lmu_colors$white, color = "grey85", linewidth = 0.2) +
-    geom_segment(data = dt_map,
-                 aes(x = longitude_i, y = latitude_i, xend = longitude_j, yend = latitude_j,
-                     linewidth = n_organisation_pairs),
-                 color = lmu_default_color(), alpha = 0.5) +
-    geom_point(data = dt_nodes_prog,
-               aes(x = longitude, y = latitude, size = degree, color = isEU, fill = isEU),
-               shape = 21) +
-    scale_fill_manual(values = scales::alpha(colorblindfriendly(), alpha = 0.5), guide = "none") +
-    scale_color_manual(values = colorblindfriendly(),
-                       labels = c("Kein Mitglied der Europäischen Union",
-                                 "Mitglied der Europäischen Union")) +
-    scale_size_continuous(range = c(0.5, 5)) +
-    scale_linewidth_continuous(range = c(0.1, 2), guide = "none") +
-    labs(size = "Grad (Anzahl an Ländern)", color = NULL) +
-    # coord_fixed(1.3) +
-    theme_void() +
-    theme(legend.position = "bottom",
-          plot.background = element_rect(fill = lmu_colors$white, color = NA),
-          panel.background = element_rect(fill = lmu_colors$white, color = NA))
+    if (scope == "world") {
+      plot_geographic_zoom <- plot_geographic +
+        coord_cartesian(xlim = c(-22, 48), ylim = c(30, 65))
+    } else {
+      plot_geographic_zoom <- plot_geographic +
+        coord_cartesian(xlim = c(-25, 45), ylim = c(30, 65)) +
+        guides(size = "none")
+    }
+    save_plot_lmu(plot_geographic_zoom,
+                  paste0("countries_map_geographic_", tolower(prog), "_", scope, "_zoomed.png"))
 
-  # Save the plots
-  save_plot_lmu(plot_countries_map, paste0("countries_map_geographic_", tolower(prog), ".png"))
+    plot_abstract <- build_country_plot_abstract(data$nodes, data$edges)
+    if (scope == "EU") {
+      plot_abstract <- plot_abstract +
+        geom_node_text(aes(label = eu28[name]), repel = TRUE, size = 3,
+                       color = lmu_default_color(), segment.color = NA)+
+        guides(size = "none")
+    }
+    save_plot_lmu(plot_abstract,
+                  paste0("countries_map_abstract_", tolower(prog), "_", scope, ".png"))
+  }
 }
-
-# TODO:
-#   - Programme-specific plots restricted to EU-countries
-#   - Programme-specific plots not with geographic but abstract layout
