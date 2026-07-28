@@ -416,13 +416,18 @@ build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE) {
 
 # --- Function 9 -------------------------------------------------------------------------
 #' @description 
-#' 
+#' Build geographical visualisation out of foundational node and edge data.
 #'
 #' Inputs:
-#' @param 
+#' @param dt_nodes data.table object. Must contain at least country, latitude, longitude,
+#'                 isEU, and degree (as returned by 'build_graph_fundamentals$nodes').
+#' @param dt_edges data.table object. Must contain at least columns country_i, country_j,
+#'                 and n_organisation_pairs (as returned by 'build_graph_fundamentals$edges').
+#' @param world data.frame. Data to visualise map as given by 'ggplot2::map_data("world")'.
 #'
 #' Output:
-#' @returns 
+#' @returns A ggplot object showing the geographical representation of the inputted data
+#'          layered over world map outline.
 
 build_country_plot_map <- function(dt_nodes, dt_edges, world) {
   # Check for valid input
@@ -479,14 +484,21 @@ build_country_plot_map <- function(dt_nodes, dt_edges, world) {
 }
 
 # --- Function 10 ------------------------------------------------------------------------
-#' @description 
-#' 
+#' @description
+#' Build abstract graph layout out of foundational node and edge data, using force-directed
+#' (Fruchterman-Reingold) positioning.
 #'
 #' Inputs:
-#' @param 
+#' @param dt_nodes data.table object. Must contain at least columns country, isEU, and
+#'                 degree (as returned by 'build_graph_fundamentals$nodes').
+#' @param dt_edges data.table object. Must contain at least columns country_i, country_j,
+#'                 and n_organisation_pairs (returned by 'build_graph_fundamentals$edges').
+#' @param seed Numeric scalar. Default 20260916 (= date of submission). Due to Fruchterman-
+#'             Reingold layout being stochastic, fixing the seed ensures reproducibility.
 #'
 #' Output:
-#' @returns 
+#' @returns A ggplot object showing an abstract, force-directed representation of the 
+#'          inputted data.
 
 build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
   # Check for valid input
