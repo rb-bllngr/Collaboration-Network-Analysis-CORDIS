@@ -34,8 +34,10 @@ packages <- c(
   "RColorBrewer",
   # Install package for assembling plots into grids
   "patchwork",
-  # Install package for labelling in plots
-  "ggrepel"
+  # Install package for labeling in plots
+  "ggrepel",
+  # Install package for abstract graph layout visualisations
+  "ggraph"
 )
 
 # Set CRAN mirror
