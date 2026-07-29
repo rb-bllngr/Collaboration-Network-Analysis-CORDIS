@@ -512,9 +512,17 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
               must.include = c("country_i", "country_j", "n_organisation_pairs"))
   assertCount(seed)
 
+  # Add an edge-level EU membership flag analogous to 'build_country_plot_map()'
+  dt_edges_flag <- merge(dt_edges, dt_nodes[, .(country, isEU)],
+                         by.x = "country_i", by.y = "country")
+  dt_edges_flag <- merge(dt_edges_flag, dt_nodes[, .(country, isEU)],
+                         by.x = "country_j", by.y = "country")
+  setnames(dt_edges_flag, old = c("isEU.x", "isEU.y"), new = c("isEU_i", "isEU_j"))
+  dt_edges_flag[, both_EU := (isEU_i == TRUE) & (isEU_j == TRUE)]
+
   # Build the graph network from the node and edge data
   graph_abstract <- graph_from_data_frame(
-    dt_edges[, .(country_i, country_j, n_organisation_pairs)],
+    dt_edges_flag[, .(country_i, country_j, n_organisation_pairs, both_EU)],
     directed = FALSE,
     vertices = dt_nodes[, .(country, isEU, degree)]
   )
@@ -525,8 +533,9 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
   # Plot abstract graph layout (i.e. Fruchterman-Reingold) using seed for reproducibility
   set.seed(seed)
   ggraph(graph_abstract, layout = "fr") +
-    geom_edge_link(aes(edge_width = n_organisation_pairs), color = "grey85") +
+    geom_edge_link(aes(edge_width = n_organisation_pairs, edge_colour = both_EU), alpha = 0.5) +
     geom_node_point(aes(size = degree, color = isEU, fill = isEU), shape = 21) +
+    scale_edge_color_manual(values = palette_isEU, guide = "none") +
     scale_fill_manual(values = scales::alpha(palette_isEU, alpha = 0.5), guide = "none") +
     scale_color_manual(
       values = palette_isEU,
