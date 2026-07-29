@@ -7,11 +7,36 @@ PATHS <- list(
 )
 
 # Source helper functions
-source("functions.R")
 source("plot_styling.R")
+source("functions.R")
 
 # TODO:
 # invisible(lapply(paths, dir.create, showWarnings = FALSE, recursive = TRUE))
+
+# Install and load the 'pak' package to access GitHub packages
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak")
+}
+
+# GitHub packages
+github_packages <- c("PPgp/wpp2024")
+
+# Increase time for install GitHub package as its quite large
+options(timeout = 600)
+
+# Install or update GitHub packages
+for (packages in github_packages) {
+  # Extract package name from the repository string
+  pkg <- sub(".*/", "", packages)
+  
+  # Check if the package is installed
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    message("Installing GitHub package:", pkg)
+    pak::pak(paste0("github::", packages))
+  }
+
+  library(pkg, character.only = TRUE)
+}
 
 # List of CRAN packages. Every package needed for project beside default packages in
 # chronological order
