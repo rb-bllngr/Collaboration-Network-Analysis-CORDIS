@@ -1,10 +1,10 @@
 # build_network.R: Construct one-mode (organisation x organisation) undirected collaboration
 #                  network from CORDIS for full data and individual programmes.
 
-# Load the data sets
-cordis <- readRDS(file.path(PATHS$DATA_INT, "cordis.RDS"))
-h2020 <- readRDS(file.path(PATHS$DATA_INT, "h2020.RDS"))
-horizon <- readRDS(file.path(PATHS$DATA_INT, "horizon.RDS"))
+# Load the data sets and filter for programmes
+cordis <- readRDS(file.path(PATHS$DATA_INT, "cordis_population.RDS"))
+h2020 <- cordis[frameworkProgramme == "H2020"]
+horizon <- cordis[frameworkProgramme == "HORIZON"]
 
 # Build weighted networks for the full CORDIS data set and each individual programme
 programmes <- list(cordis = cordis, h2020 = h2020, horizon = horizon)
