@@ -1,5 +1,5 @@
-# map_country_information.R: Compare the CORDIS data ISO2 codes to UN WPP2024 data codes,
-#                            and fix deviations by hand
+# manage_country_information.R: Compare CORDIS data ISO2 codes to UN WPP2024 data codes,
+#                               and fix deviations by hand
 
 # TODO: FIX MALFORMED COUNTRY ENTRIES BY HAND (IF REASONABLE EFFORT REQUIRED)
 # TODO: ---> HERE?????
