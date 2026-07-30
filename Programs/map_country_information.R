@@ -11,10 +11,15 @@ message(cordis[is.na(country) == TRUE | grepl(pattern = "^[A-Z]{2}$", country) =
 cordis <- cordis[is.na(country) == FALSE & grepl(pattern = "^[A-Z]{2}$", country) == TRUE]
 
 # Import UN data from World Population Prospect Report's R-package version wpp2024. Restrict
-# data to start of each programme's year, extract population and encode to ISO2 code
+# data to start of each programme's year and extract population
 data(pop1dt)
 dt_population <- pop1dt[year %in% c(2014, 2021), .(country_code, name, pop = pop * 1000, year)]
+
+# Check WPP's regional/income-group aggregates to drop
+dt_population[country_code >= 900, sort(unique(name))]
 dt_population <- dt_population[country_code < 900]
+
+# Encode to ISO2 code
 dt_population[, iso2 := countrycode(
   sourcevar = country_code, origin = "un", destination = "iso2c",
   custom_match = c("158" = "TW", "300" = "EL", "412" = "XK", "826" = "UK")
