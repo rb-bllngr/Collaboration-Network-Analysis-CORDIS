@@ -61,8 +61,9 @@ packages <- c(
   "patchwork",
   # Install package for labeling in plots
   "ggrepel",
-  # Install package for abstract graph layout visualisations
+  # Install packages for abstract graph layout visualisations
   "ggraph",
+  "tidygraph",
   # Install package for converting country names to codes and vice versa
   "countrycode"
 )
