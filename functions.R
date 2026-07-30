@@ -11,6 +11,7 @@
 #' 08. build_graph_fundamentals
 #' 09. build_country_plot_map
 #' 10. build_country_plot_abstract
+#' 11. build_ranking_evolution_plot
 
 # --- Function 1 -------------------------------------------------------------------------
 #' @description
@@ -550,4 +551,62 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
     theme(legend.title = element_text(vjust = 0.6),
           plot.background = element_rect(fill = lmu_colors$white, color = NA),
           panel.background = element_rect(fill = lmu_colors$white, color = NA))
+}
+
+# --- Function 11 ------------------------------------------------------------------------
+#' @description
+#' Builds combined (patchwork) plot of country-ranking evolution from H2020 to HORIZON EUROPE
+#' with one facet per centrality measure. Higher centrality values rank higher (rank 1).
+#'
+#' Inputs:
+#' @param dt_rank data.table object. Must contain at least columns programme, country,
+#'                country_name, column named in 'ranked_by', and measure (a factor, whose
+#'                levels correspond the faceting order/labels via 'mapping_centrality')
+#' @param ranked_by Character string. Name of the column in 'dt_rank' to rank by.
+#' @param y_label Character string. Acts as the y-axis label describing the ranking basis.
+#'
+#' Output:
+#' @returns A combined ggplot/patchwork object with one facet per centrality measure.
+
+build_ranking_evolution_plot <- function(dt_rank, ranked_by, y_label) {
+  # Check for valid input
+  require(checkmate)
+  require(data.table)
+  require(ggplot2)
+  require(ggrepel)
+  require(patchwork)
+  assertDataTable(dt_rank)
+  assertNames(names(dt_rank),
+              must.include = c("programme", "measure", "country", "country_name", ranked_by))
+  assertString(ranked_by)
+  assertString(y_label)
+
+  # Work on copied data.table so the user's data.table is untouched. Compute rank on the
+  # requested column
+  dt_rank <- copy(dt_rank)
+  dt_rank[, rank := frank(-.SD[[1]]), by = .(programme, measure), .SDcols = ranked_by]
+
+  # Plot the four centrality measure ranking evolution from H2020 to HORIZON each
+  plots <- list()
+  for (name in levels(dt_rank$measure)) {
+    plots[[name]] <-
+      ggplot(dt_rank[measure == name], aes(x = programme, y = rank, group = country)) +
+      geom_line(alpha = 1) +
+      geom_point(shape = 21, size = 6, fill = lmu_colors$white, color = lmu_default_color()) +
+      geom_text(aes(label = rank), size = 3) +
+      geom_text_repel(data = dt_rank[(measure == name) & (programme == "HORIZON")],
+                      aes(label = country_name), segment.colour = NA, nudge_x = 0.05,
+                      direction = "y", hjust = 0, size = 3) +
+      scale_x_discrete(expand = expansion(add = c(0.1, 0.5))) +
+      scale_y_reverse() +
+      labs(x = NULL, y = y_label, title = mapping_centrality[[name]]) +
+      theme_lmu() +
+      theme(panel.grid.major.x = element_blank(),
+            panel.grid.major.y = element_blank(),
+            axis.text.y = element_blank(),
+            plot.title = element_text(face = "plain", hjust = 0.5, size = 12))
+  }
+
+  # Assemble the plots to one combined one
+  wrap_plots(plots, ncol = 4, axis_titles = "collect")
 }
