@@ -95,6 +95,4 @@ cordis[, frameworkProgramme := factor(frameworkProgramme, levels = c("H2020", "H
 
 # Save the joined and individual programme-networks
 saveRDS(cordis, file.path(PATHS$DATA_INT, "cordis.RDS"))
-saveRDS(cordis[frameworkProgramme == "H2020"], file.path(PATHS$DATA_INT, "h2020.RDS"))
-saveRDS(cordis[frameworkProgramme == "HORIZON"], file.path(PATHS$DATA_INT, "horizon.RDS"))
 message("\nColumns in final dataset: ", paste(names(cordis), collapse = ", "))
