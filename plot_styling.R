@@ -114,48 +114,54 @@ eu27 <- c(
 )
 eu28 <- c(eu27[1:26], UK = "Vereinigtes Königreich", eu27[27])
 
-associated_h2020 <- c(
-  AL = "Albanien",
-  AM = "Armenien",
-  BA = "Bosnien und Herzegowina",
-  FO = "Färöer",
-  GE = "Georgien",
-  IS = "Island",
-  IL = "Israel",
-  MD = "Moldau",
-  ME = "Montenegro",
-  MK = "Nordmazedonien",
-  NO = "Norwegen",
-  RS = "Serbien",
-  CH = "Schweiz",
-  TR = "Türkei",
-  TN = "Tunesien",
-  UA = "Ukraine"
+associated_countries <- list(
+  H2020 = c(
+    AL = "Albanien",
+    AM = "Armenien",
+    BA = "Bosnien und Herzegowina",
+    FO = "Färöer",
+    GE = "Georgien",
+    IS = "Island",
+    IL = "Israel",
+    MD = "Moldau",
+    ME = "Montenegro",
+    MK = "Nordmazedonien",
+    NO = "Norwegen",
+    RS = "Serbien",
+    CH = "Schweiz",
+    TR = "Türkei",
+    TN = "Tunesien",
+    UA = "Ukraine"
+  ),
+  HORIZON = c(
+    AL = "Albanien",
+    AM = "Armenien",
+    BA = "Bosnien und Herzegowina",
+    CA = "Kanada",
+    EG = "Ägypten",
+    FO = "Färöer",
+    GE = "Georgien",
+    IS = "Island",
+    IL = "Israel",
+    KR = "Südkorea",
+    XK = "Kosovo",
+    MD = "Moldau",
+    ME = "Montenegro",
+    NZ = "Neuseeland",
+    MK = "Nordmazedonien",
+    NO = "Norwegen",
+    RS = "Serbien",
+    CH = "Schweiz",
+    TR = "Türkei",
+    TN = "Tunesien",
+    UA = "Ukraine",
+    UK = "Vereinigtes Königreich"
+  )
 )
 
-associated_horizon <- c(
-  AL = "Albanien",
-  AM = "Armenien",
-  BA = "Bosnien und Herzegowina",
-  CA = "Kanada",
-  EG = "Ägypten",
-  FO = "Färöer",
-  GE = "Georgien",
-  IS = "Island",
-  IL = "Israel",
-  KR = "Südkorea",
-  XK = "Kosovo",
-  MD = "Moldau",
-  ME = "Montenegro",
-  NZ = "Neuseeland",
-  MK = "Nordmazedonien",
-  NO = "Norwegen",
-  RS = "Serbien",
-  CH = "Schweiz",
-  TR = "Türkei",
-  TN = "Tunesien",
-  UA = "Ukraine",
-  UK = "Vereinigtes Königreich"
+country_labels_EU_plus_associated <- list(
+  H2020 = c(eu28, associated_countries$H2020),
+  HORIZON = c(eu27, associated_countries$HORIZON)
 )
 
 # --- Saving Function --------------------------------------------------------------------
