@@ -3,11 +3,12 @@
 # Step 1: Set up environment (loads packages, sources functions, defines paths)
 source("envir_setup.R")
 
-# Step 2: Download and extract raw data from EU Commission portal 'CORDIS'
-source("Programs/download_data.R")
+# Step 2: Download and extract raw data from EU Commission portal 'CORDIS' or import frozen
+# snapshot from Sync&Share. Load and combine project and organisation data from both programmes.
+source("Programs/download_and_merge_data.R")
 
-# Step 3: Load and combine project and organisation data from both programs
-source("Programs/merge_data_sets.R")
+# Step 3: Introduce population information and merge with existing CORDIS data
+source("Programs/map_country_information.R")
 
 # Step 4: Build all variants of the networks
 source("Programs/build_networks.R")
