@@ -62,7 +62,9 @@ packages <- c(
   # Install package for labeling in plots
   "ggrepel",
   # Install package for abstract graph layout visualisations
-  "ggraph"
+  "ggraph",
+  # Install package for converting country names to codes and vice versa
+  "countrycode"
 )
 
 # Set CRAN mirror
