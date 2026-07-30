@@ -8,7 +8,7 @@ source("envir_setup.R")
 source("Programs/download_and_merge_data.R")
 
 # Step 3: Introduce population information and merge with existing CORDIS data
-source("Programs/map_country_information.R")
+source("Programs/manage_country_information.R")
 
 # Step 4: Build all variants of the networks
 source("Programs/build_networks.R")
