@@ -31,8 +31,13 @@ unzip_recursive <- function(zip_path, destination) {
   assertString(zip_path)
   assertString(destination)
 
+  # Skip unzipping if this zip was already handled by a sibling's recursive call
+  if (file.exists(zip_path) == FALSE) {
+    return(invisible(NULL))
+  }
+
   # Unzip the original .zip files imported from the portal and remove afterwards
-  unzip(zip_path, exdir = destination)
+  unzip(zip_path, exdir = destination, unzip = "unzip")
   file.remove(zip_path)
 
   # Check for any nested zips and unzip those too
@@ -75,10 +80,6 @@ download_and_unzip <- function(url, destination) {
   downloaded <- GET(url,
                     config(http_version = 2),  # force HTTP/1.1 for CORDIS compatibility
                     write_disk(zip_path, overwrite = TRUE),
-                    # Attention: Switched overwrite from TRUE to FALSE on July __ 2026 to
-                    #            use up-to-date version for analysis. If latest version is
-                    #            desired, just switch back to TRUE which makes the files
-                    #            to be overwritten once new version is available.
                     progress())
   if (http_error(downloaded)) {
     stop("Failed to download: ", url, "\nStatus: ", status_code(downloaded))
