@@ -86,8 +86,9 @@ message("Organisations loaded: ", nrow(organisations), " rows across both progra
 cordis <- organisations[projects, on = .(projectID = id), nomatch = NA]
 message("Joined dataset: ", nrow(cordis), " rows, ", ncol(cordis), " columns")
 
-# TODO: FIX MALFORMED frameworkProgramme ENTRIES BY EXCLUDING OR MANUALLY REPAIRING THEM
-#       BEFORE SAVING INDIVIDUAL PROGRAMME .RDS-OBJECTS AND CONVERT TO FACTOR
+# Check for any malformed frameworkProgramme entries
+cordis[, .N, by = frameworkProgramme]
+nrow(cordis[!frameworkProgramme %in% c("H2020", "HORIZON"), .N, by = projectID])
 
 # Convert variable frameworkProgramme to Factor
 cordis[, frameworkProgramme := factor(frameworkProgramme, levels = c("H2020", "HORIZON"))]
@@ -96,24 +97,4 @@ cordis[, frameworkProgramme := factor(frameworkProgramme, levels = c("H2020", "H
 saveRDS(cordis, file.path(PATHS$DATA_INT, "cordis.RDS"))
 saveRDS(cordis[frameworkProgramme == "H2020"], file.path(PATHS$DATA_INT, "h2020.RDS"))
 saveRDS(cordis[frameworkProgramme == "HORIZON"], file.path(PATHS$DATA_INT, "horizon.RDS"))
-
-
-##########################################################################################
-##########################################################################################
-# Sanity checks
-message("\n--- Sanity checks --- \nRows per program:")
-print(cordis[, .N, by = frameworkProgramme])
-
-# Try to find out more about the malformed frameworkProgramme entries
-# View(cordis[!frameworkProgramme %in% c("H2020", "HORIZON")])
-# Check whether present deviations for projectIDs cover all entries under respective ID
-cordis[!frameworkProgramme %in% c("H2020", "HORIZON"), .N, by = projectID]
-malformed_frameworkProgramme_projIDs <-
-  unique(cordis[!frameworkProgramme %in% c("H2020", "HORIZON"), projectID])
-cordis[projectID %in% malformed_frameworkProgramme_projIDs, .N, by = projectID]
-# Yes, projects with malformed framework are fully malformed, no additional correct entries!
-
-message("Missing projectIDs in organisations: ", organisations[is.na(projectID), .N])
-message("Projects with no matching organisation: ",
-        projects[!id %in% organisations$projectID, .N])
 message("\nColumns in final dataset: ", paste(names(cordis), collapse = ", "))
