@@ -431,7 +431,7 @@ for (prog in programmes) {
 
       plot_abstract <- plot_abstract +
         geom_node_text(aes(label = fifelse(name %in% names(labels_prog), labels_prog[name], name)),
-                       repel = TRUE, size = 3, color = lmu_default_color(), segment.color = NA)+
+                       repel = TRUE, size = 3, color = lmu_default_color(), segment.color = NA) +
         guides(size = "none")
     }
     save_plot_lmu(plot_abstract,
