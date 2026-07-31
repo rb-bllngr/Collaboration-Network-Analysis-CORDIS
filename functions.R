@@ -483,7 +483,7 @@ build_country_plot_map <- function(dt_nodes, dt_edges, world) {
       guide = guide_legend(position = "top", override.aes = list(shape = 16, size = 3))) +
     scale_size_continuous(range = c(0.5, 5), guide = guide_legend(position = "bottom")) +
     scale_linewidth_continuous(range = c(0.1, 2), guide = "none") +
-    labs(size = "Grad (Anzahl an Ländern)", color = NULL) +
+    labs(size = "Summe der Grade (je Land)", color = NULL) +
     theme_void() +
     theme(legend.title = element_text(vjust = 0.6),
           plot.background = element_rect(fill = lmu_colors$white, color = NA),
@@ -551,7 +551,7 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
       guide = guide_legend(position = "top", override.aes = list(shape = 16, size = 3))) +
     scale_size_continuous(range = c(0.5, 5), guide = guide_legend(position = "bottom")) +
     scale_edge_width_continuous(range = c(0.1, 2), guide = "none") +
-    labs(size = "Grad (Anzahl an Ländern)", color = NULL) +
+    labs(size = "Summe der Grade (je Land)", color = NULL) +
     theme_void() +
     theme(legend.title = element_text(vjust = 0.6),
           plot.background = element_rect(fill = lmu_colors$white, color = NA),
