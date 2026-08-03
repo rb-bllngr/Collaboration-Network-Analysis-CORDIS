@@ -98,7 +98,9 @@ for (prog in programmes) {
 
   # Aggregate to country pairs
   dt_country_pairs <- dt_edges[, .(
+    # Count of distinct collaborating organisation-pairs
     n_organisation_pairs = .N,
+    # Total shared projects
     sum_weight = sum(n_projects_shared)
   ), by = .(country_i, country_j)]
 
@@ -141,9 +143,9 @@ for (prog in programmes) {
                                     choose(n_organisations_i, 2),
                                     n_organisations_i * n_organisations_j)]
 
-  # Handle the case of same-country, only one organisation from that country, i.e. the
-  # binomial coefficient ends up being zero (as 'choose(1, 2) = 0') --> NA, as different
-  # from an actual density of zero
+  # Handle the case of same-country pair with only 1 organisation from that country, i.e.
+  # binomial coefficient ends up being zero (as 'choose(1, 2) = 0') --> structural NA, as
+  # zero possible pairs is indeterminate, not a density of zero.
   dt_density[, density_observed := fifelse(pairs_max == 0,
                                            NA_real_,
                                            n_organisation_pairs / pairs_max)]
@@ -159,12 +161,12 @@ for (prog in programmes) {
                                          (sum_degree_i * sum_degree_i) / (4 * nrow(dt_edges)),
                                          (sum_degree_i * sum_degree_j) / (2 * nrow(dt_edges)))]
   
-  # Handle case of same-country, only one organisation from that country (analogous to above)
+  # Handle case of same-country pair with only 1 organisation from that country (analogous to above)
   dt_density[, density_config := fifelse(pairs_max == 0,
                                          NA_real_,
                                          edges_expected / pairs_max)]
 
-  # Compute collaboration preference ratio
+  # Compute collaboration preference ratio.
   dt_density[, collab_preference := fifelse(density_config == 0,
                                             NA_real_,
                                             density_observed / density_config)]
@@ -182,20 +184,65 @@ for (prog in programmes) {
            old = c("density_within.x", "density_within.y"),
            new = c("density_within_i", "density_within_j"))
 
-  # Calculate relative density
+  # Calculate relative density. Inherits the FIRST NA LAYER from 'density_within' whenever
+  # EITHER endpoint country has only 1 organisation. Distinct SECOND NA LAYER occurs here,
+  # as even with > 1 organisations, a country can have zero observed(!) within-country
+  # collaborations, i.e. 'density_within == 0'. This produces NaN (0 / 0) or Inf (x / 0)
+  # rather than NAs. Handled in the diagnostics after the loop!
   dt_density[,
     density_relative := density_observed / (1/2 * (density_within_i + density_within_j))
   ]
-  # Note: Over 1/3 of the entries end up being NAs...
 
   # Assemble results into pre-defined lists
   results_edges[[prog]] <- dt_country_pairs[, programme := prog]
-  results_density[[prog]] <- dt_density
+  results_density[[prog]] <- dt_density[, programme := prog]
 }
 
 # Combine programme-specific computations into one data.table each
 dt_country_pairs <- rbindlist(results_edges)
 dt_country_density <- rbindlist(results_density)
+
+# Diagnose the scope of the 'density_relative' NA problem:
+#     - NA layer No. 1: How many countries with only 1 organisation ('pairs_max == 0') are
+#       have structurally indeterminate within-country density (!= 0)? 
+dt_country_singletons <- dt_country_density[(country_i == country_j) & (n_organisations_i == 1),
+                                            .(country = country_i), by = programme]
+print(dt_country_singletons)
+dt_country_density[country_i != country_j,
+                   .(pct_NAs = mean(is.na(density_relative) == TRUE) * 100), by = programme]
+dt_country_density[(country_i != country_j) & (is.na(density_relative) == TRUE), .N,
+                   by = .(programme, country_i)][order(programme, -N)]
+
+# Handle first NA layer by restricting data to both countries having >= 2 organisations each
+# Note: This distinguishes variable 'collab_preference' from downstream preference anaylsis!
+dt_country_density_multi <- dt_country_density[(n_organisations_i > 1) & (n_organisations_j > 1)]
+
+# Diagnose the scope of the 'density_relative' NA problem:
+#     - NA layer No. 2: Even in the multi-organisation subset, within-country density can
+#       still be zero if country's organisations never collaborated with each other on a
+#       shared project. If BOTH have 'density_within == 0', then 0 / 0 = NaN or x / 0 = Inf
+dt_country_density_multi[country_i != country_j, .(
+  n_NaN = sum(is.nan(density_relative) == TRUE),
+  n_Inf = sum(is.infinite(density_relative) == TRUE),
+  n_finite = sum(is.finite(density_relative) == TRUE)
+), by = programme]
+
+# Which countries actually have zero within-country collaboration despite having more than
+# 1 participating organisation (i.e. which countries fall under second NA layer)?
+dt_country_density_multi[(country_i == country_j) & (density_within_i == 0),
+                         .(country = country_i, n_organisations_i), by = programme]
+
+# Handle second NA layer by converting NaN and Inf into explicit NA_real_ applied AFTER
+# multi-organisation restriction so it is clearly second, distinct source of missingness
+dt_country_density_multi[(is.nan(density_relative) == TRUE) | (is.infinite(density_relative) == TRUE),
+                         density_relative := NA_real_]
+
+# Check why this does not undermine variable 'collab_preference': NAs only ever occur on
+# diagonal (same-country), never cross-country
+dt_country_density[country_i == country_j, .(pct_na_diag = mean(is.na(collab_preference)) * 100),
+                   by = programme]
+dt_country_density[country_i != country_j, .(pct_na_cross = mean(is.na(collab_preference)) * 100),
+                   by = programme]
 
 # Rank the most common country combinations once by collaborating organisation pairs and
 # once by shared-project weight (constrained on cross-country) per programme
@@ -419,8 +466,7 @@ for (prog in programmes) {
         coord_cartesian(xlim = c(-22, 48), ylim = c(30, 65))
     } else {
       plot_geographic_zoom <- plot_geographic +
-        coord_cartesian(xlim = c(-25, 45), ylim = c(30, 65)) +
-        guides(size = "none")
+        coord_cartesian(xlim = c(-25, 45), ylim = c(30, 65))
     }
     save_plot_lmu(plot_geographic_zoom,
                   paste0("countries_map_geographic_", tolower(prog), "_", scope, "_zoomed.png"))
@@ -431,10 +477,34 @@ for (prog in programmes) {
 
       plot_abstract <- plot_abstract +
         geom_node_text(aes(label = fifelse(name %in% names(labels_prog), labels_prog[name], name)),
-                       repel = TRUE, size = 3, color = lmu_default_color(), segment.color = NA) +
-        guides(size = "none")
+                       repel = TRUE, size = 3, color = lmu_default_color(), segment.color = NA)
     }
     save_plot_lmu(plot_abstract,
                   paste0("countries_map_abstract_", tolower(prog), "_", scope, ".png"))
   }
+}
+
+# Analyse the relatedness of the countries preference to collaborate with certain countries
+# more than others (following idea of European Commission, Balland and Ravet (2018))
+for (prog in programmes) {
+  # Prepare labeling for the plot
+  labels_prog <- country_labels_EU_plus_associated[[prog]]
+
+  # Filter the original CORDIS project data accordingly to use in self-written function
+  dt_country_project <- cordis_population[
+    (frameworkProgramme == prog) &
+      (is.na(country) == FALSE) &
+      (grepl("^[A-Z]{2}$", country)) &
+      (country %in% names(labels_prog)),
+    .(projectID, country)
+  ]
+
+  dt_relatedness <- compute_relatedness(dt_country_project)
+  dt_top_k <- find_relatedness_top_k(dt_relatedness, k_start = 4)
+  message(prog, ": no-isolate solution found at k = ", unique(dt_top_k$k_used))
+
+  plot_relatedness <- build_relatedness_plot(dt_nodes = dt_country_connections[programme == prog],
+                                             dt_edges = dt_top_k,
+                                             labels = labels_prog)
+  save_plot_lmu(plot_relatedness, paste0("countries_relatedness_", tolower(prog), ".png"))
 }
