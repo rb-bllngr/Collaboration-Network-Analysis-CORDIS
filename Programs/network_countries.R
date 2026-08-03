@@ -200,7 +200,9 @@ for (prog in programmes) {
 
 # Combine programme-specific computations into one data.table each
 dt_country_pairs <- rbindlist(results_edges)
+saveRDS(dt_country_pairs, file.path(PATHS$DATA_INT, "country_pairs.RDS"))
 dt_country_density <- rbindlist(results_density)
+
 
 # Diagnose the scope of the 'density_relative' NA problem:
 #     - NA layer No. 1: How many countries with only 1 organisation ('pairs_max == 0') are
