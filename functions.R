@@ -12,6 +12,9 @@
 #' 09. build_country_plot_map
 #' 10. build_country_plot_abstract
 #' 11. build_ranking_evolution_plot
+#' 12. compute_relatedness
+#' 13. find_relatedness_top_k
+#' 14. build_relatedness_plot
 
 # --- Function 1 -------------------------------------------------------------------------
 #' @description
@@ -20,12 +23,11 @@
 #' the same way until no .zip files remain.
 #'
 #' Inputs:
-#' @param path Character string. Full path to the .zip file to extract.
+#' @param zip_path Character string. Full path to the .zip file to extract.
 #' @param destination Character string. Path to directory where extracted files are placed.
 #'
 #' Output:
 #' @returns No return value. Called for extracting files and removing zips.
-
 unzip_recursive <- function(zip_path, destination) {
   # Check for valid input
   require(checkmate)
@@ -63,7 +65,6 @@ unzip_recursive <- function(zip_path, destination) {
 #'
 #' Output:
 #' @returns No return value. Called for downloading and extracting files.
-
 download_and_unzip <- function(url, destination) {
   # Check for valid input
   require(checkmate)
@@ -104,7 +105,6 @@ download_and_unzip <- function(url, destination) {
 #'
 #' Output:
 #' @returns A data.table of the referenced data.
-
 load_xlsx <- function(subdirectory, filename) {
   # Check for valid input
   require(checkmate)
@@ -138,7 +138,6 @@ load_xlsx <- function(subdirectory, filename) {
 #' Output:
 #' @returns A list with two igraph objects, one weighted ($weighted) and one unweighted
 #'          ($unweighted) network.
-
 build_collaboration_network <- function(dt) {
   # Check for valid input
   require(checkmate)
@@ -196,7 +195,6 @@ build_collaboration_network <- function(dt) {
 #' Output:
 #' @returns A named numeric vector of 'length(names_full)'. Contains 'subgraph_values' and
 #'          NAs for elements absent from 'subgraph_values'
-
 expand_subgraph_to_full_graph <- function(subgraph_values, names_full) {
   # Check for valid input
   require(checkmate)
@@ -240,7 +238,6 @@ expand_subgraph_to_full_graph <- function(subgraph_values, names_full) {
 #' Output:
 #' @returns Either the loaded, already existing file or the newly computed result of the
 #'          function within 'func_to_compute()'.
-
 checkpoint_RDS <- function(filename, prog, func_to_compute, recompute = FALSE) {
   # Check for valid input
   require(checkmate)
@@ -287,7 +284,6 @@ checkpoint_RDS <- function(filename, prog, func_to_compute, recompute = FALSE) {
 #'
 #' Output:
 #' @returns A data.table object with one row for the respective measures per simulation
-
 simulate_random_graph <- function(func_to_generate_graph, n_simulation = 100) {
   # Check for valid input
   require(checkmate)
@@ -322,7 +318,7 @@ simulate_random_graph <- function(func_to_generate_graph, n_simulation = 100) {
 #' union of the maximum spanning tree AND the N-1 overall strongest links in the network.
 #' Additionally, it establishes a node-level table containing information about geolocation,
 #' EU-membership, and degree within the country graph. Optionally can restrict the data to
-#' EU-member countries only before taking the corresponding edges from the network.
+#' EU-member and associated countries only before taking corresponding edges from network.
 #'
 #' Inputs:
 #' @param dt_nodes data.table object. Contains country-level coordinates, averaged across
@@ -330,11 +326,11 @@ simulate_random_graph <- function(func_to_generate_graph, n_simulation = 100) {
 #'                 programme, country, latitude, longitude, and n_connections
 #' @param dt_edges data.table object. Contains country-pair edges across all programmes.
 #'                 Must contain at least columns programme, country_i, country_j, and
-#'                 n_organisation_pairs.
+#'                 sum_weight.
 #' @param prog Character string. Either 'H2020' or 'HORIZON'; identifies programme being
 #'             looked at and used to subset input data.tables.
-#' @param eu Logical. Default FALSE; if TRUE, restricts edges to country-pairs where both
-#'           countries are EU members.
+#' @param eu Logical. Default FALSE; if TRUE, restricts edges to country-pairs where
+#'           countries are EU members or associated countries.
 #' @param associated Character vector. Default empty; Vector of ISO2 country codes of non-
 #'                   EU countries to keep alongside EU members when 'eu == TRUE'. Ignored
 #'                   if 'eu == FALSE'.
@@ -342,7 +338,6 @@ simulate_random_graph <- function(func_to_generate_graph, n_simulation = 100) {
 #' Output:
 #' @returns A list with two data.table objects for information on the fundamental edges
 #'          with country-pair attributes ($edges) and node-level information ($nodes).
-
 build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE,
                                      associated = character(0)) {
   # Check for valid input
@@ -353,7 +348,7 @@ build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE,
               must.include = c("programme", "country", "latitude", "longitude", "n_connections"))
   assertDataTable(dt_edges)
   assertNames(names(dt_edges),
-              must.include = c("programme", "country_i", "country_j", "n_organisation_pairs"))
+              must.include = c("programme", "country_i", "country_j", "sum_weight"))
   assertChoice(prog, choices = c("H2020", "HORIZON"))
   assertFlag(eu)
   assertCharacter(associated)
@@ -392,7 +387,7 @@ build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE,
   graph_country <- graph_from_data_frame(
     # Data Frame containing edgelist in the first two columns with additional columns as
     # edge attributes (here: weight)
-    dt_edges_prog[, .(country_i, country_j, n_organisation_pairs)],
+    dt_edges_prog[, .(country_i, country_j, sum_weight)],
     directed = FALSE,
     vertices = dt_nodes_prog[, .(country, latitude, longitude, n_connections)]
   )
@@ -402,13 +397,13 @@ build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE,
 
   # Create the maximum spanning tree (MST). Because igraph's function 'mst()' computes
   # the minimum spanning tree, weights are negated to produce maximum instead
-  graph_mst <- mst(graph_country, weights = -E(graph_country)$n_organisation_pairs)
+  graph_mst <- mst(graph_country, weights = -E(graph_country)$sum_weight)
   dt_mst <- as.data.table(as_data_frame(graph_mst, what = "edges"))
   dt_mst <- dt_mst[, .(country_i = pmin(from, to), country_j = pmax(from, to))]
 
   # Additionally, take the N-1 overall strongest links between countries, independent of
   # the maximum spanning tree
-  dt_strongest_Nminus1 <- dt_edges_prog[order(-n_organisation_pairs)][
+  dt_strongest_Nminus1 <- dt_edges_prog[order(-sum_weight)][
     1:(vcount(graph_country) - 1), .(country_i, country_j)
   ]
 
@@ -428,13 +423,12 @@ build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE,
 #' @param dt_nodes data.table object. Must contain at least country, latitude, longitude,
 #'                 isEU, and n_connections (as returned by 'build_graph_fundamentals$nodes').
 #' @param dt_edges data.table object. Must contain at least columns country_i, country_j,
-#'                 and n_organisation_pairs (as returned by 'build_graph_fundamentals$edges').
+#'                 and sum_weight (as returned by 'build_graph_fundamentals$edges').
 #' @param world data.frame. Data to visualise map as given by 'ggplot2::map_data("world")'.
 #'
 #' Output:
 #' @returns A ggplot object showing the geographical representation of the inputted data
 #'          layered over world map outline.
-
 build_country_plot_map <- function(dt_nodes, dt_edges, world) {
   # Check for valid input
   require(checkmate)
@@ -443,7 +437,7 @@ build_country_plot_map <- function(dt_nodes, dt_edges, world) {
               must.include = c("country", "latitude", "longitude", "n_connections"))
   assertDataTable(dt_edges)
   assertNames(names(dt_edges),
-              must.include = c("country_i", "country_j", "n_organisation_pairs"))
+              must.include = c("country_i", "country_j", "sum_weight"))
 
   # Merge node and edge information into one data.table
   dt_map <- merge(dt_edges, dt_nodes[, .(country, latitude, longitude, isEU)],
@@ -466,7 +460,7 @@ build_country_plot_map <- function(dt_nodes, dt_edges, world) {
     # Alternatively, choose geom_segment for straight lines instead of curves!
     geom_curve(data = dt_map,
                aes(x = longitude_i, y = latitude_i, xend = longitude_j, yend = latitude_j,
-                   linewidth = n_organisation_pairs),
+                   linewidth = sum_weight),
                color = ifelse((dt_map$isEU_i == TRUE) & (dt_map$isEU_j == TRUE),
                               palette_isEU[["TRUE"]],  # Edge between two EU members
                               palette_isEU[["FALSE"]]),  # Edge at least one non-EU
@@ -499,14 +493,13 @@ build_country_plot_map <- function(dt_nodes, dt_edges, world) {
 #' @param dt_nodes data.table object. Must contain at least columns country, isEU, and
 #'                 n_connections (as returned by 'build_graph_fundamentals$nodes').
 #' @param dt_edges data.table object. Must contain at least columns country_i, country_j,
-#'                 and n_organisation_pairs (returned by 'build_graph_fundamentals$edges').
+#'                 and sum_weight (returned by 'build_graph_fundamentals$edges').
 #' @param seed Numeric scalar. Default 20260916 (= date of submission). Due to Fruchterman-
 #'             Reingold layout being stochastic, fixing the seed ensures reproducibility.
 #'
 #' Output:
 #' @returns A ggplot object showing an abstract, force-directed representation of the 
 #'          inputted data.
-
 build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
   # Check for valid input
   require(checkmate)
@@ -529,7 +522,7 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
 
   # Build the graph network from the node and edge data
   graph_abstract <- graph_from_data_frame(
-    dt_edges_flag[, .(country_i, country_j, n_organisation_pairs, both_EU)],
+    dt_edges_flag[, .(country_i, country_j, sum_weight, both_EU)],
     directed = FALSE,
     vertices = dt_nodes[, .(country, isEU, n_connections)]
   )
@@ -540,7 +533,7 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
   # Plot abstract graph layout (i.e. Fruchterman-Reingold) using seed for reproducibility
   set.seed(seed)
   ggraph(graph_abstract, layout = "fr") +
-    geom_edge_link(aes(edge_width = n_organisation_pairs, edge_colour = both_EU), alpha = 0.5) +
+    geom_edge_link(aes(edge_width = sum_weight, edge_colour = both_EU), alpha = 0.5) +
     geom_node_point(aes(size = n_connections, color = isEU, fill = isEU), shape = 21) +
     scale_edge_color_manual(values = palette_isEU, guide = "none") +
     scale_fill_manual(values = scales::alpha(palette_isEU, alpha = 0.5), guide = "none") +
@@ -572,7 +565,6 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
 #'
 #' Output:
 #' @returns A combined ggplot/patchwork object with one facet per centrality measure.
-
 build_ranking_evolution_plot <- function(dt_rank, ranked_by, y_label) {
   # Check for valid input
   require(checkmate)
@@ -614,4 +606,218 @@ build_ranking_evolution_plot <- function(dt_rank, ranked_by, y_label) {
 
   # Assemble the plots to one combined one
   wrap_plots(plots, ncol = 4, axis_titles = "collect")
+}
+
+# --- Function 12 ------------------------------------------------------------------------
+#' @description
+#' A short description...
+#'
+#' Inputs:
+#' @param dt_country_project description
+#' @param method description
+#'
+#' Output:
+#' @returns description
+compute_relatedness <- function(dt_country_project, method = "prob") {
+  # Check for valid input
+  require(checkmate)
+  require(data.table)
+  require(EconGeo)
+  assertDataTable(dt_country_project)
+  assertNames(names(dt_country_project), must.include = c("projectID", "country"))
+  assertString(method)
+
+  # Transform to binary participation logic, i.e. a country is present in project if at
+  # least one of its organisations participates, regardles of how many
+  dt_occurrence <- unique(dt_country_project[, .(projectID, country)])
+
+  # Build a binary project x country participation matrix (following the theoretical frame
+  # of the occurrence matrix O in Steijn (2021))
+  matrix_occurrence <- as.matrix(table(dt_occurrence$projectID, dt_occurrence$country))
+  # Note: This follows Steijn's comment on rows indicating projects (places) and columns
+  # indicating countries (entities) which requires O^T * O instead of O * O^T!
+
+  # Confirm the binary property for the matrix before transposing and multiplying
+  assertTRUE(all(matrix_occurrence %in% c(as.integer(0), as.integer(1))))
+
+  # Create in Steijn (2021) referenced co-occurrence matrix C by multiplying the transpose
+  # of matrix O by O itself.
+  matrix_cooccurrence <- t(matrix_occurrence) %*% matrix_occurrence
+  # Note: The matrix follows the frame [rows x columns], therefore ...
+  #     - t(matrix_occurrence) = t(projects x countries) = countries x projects, and
+  #     - matrix_occurrence = projects x countries
+  # ... yielding (countries x projects) %*% (projects x countries) = countries x countries
+
+  # Compute the relatedness on the co-occurrence matrix consisting of countries
+  matrix_relatedness <- relatedness(matrix_cooccurrence, method = method)
+
+  # Reshape matrix to long format, matching the expected input for self-written function
+  # 'find_relatedness_top_k()'
+  dt_relatedness <- as.data.table(as.table(matrix_relatedness))
+  setnames(dt_relatedness, new = c("country_i", "country_j", "relatedness"))
+  dt_relatedness[, ":=" (country_i = as.character(country_i),
+                         country_j = as.character(country_j))]
+
+  # Drop diagonal and symmetrical entries, fix relatedness edge cases to be NAs in order
+  # to be able to remove them
+  dt_relatedness <- dt_relatedness[country_i < country_j]
+  dt_relatedness[(is.na(relatedness) == TRUE) | (is.infinite(relatedness) == TRUE),
+                 relatedness := NA_real_]
+  dt_relatedness[is.na(relatedness) == FALSE]
+}
+
+# --- Function 13 ------------------------------------------------------------------------
+#' @description
+#' A short description...
+#'
+#' Inputs:
+#' @param dt_relatedness description
+#' @param k_start description
+#' @param k_max description
+#'
+#' Output:
+#' @returns description
+find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
+  # Check for valid input
+  require(checkmate)
+  require(data.table)
+  assertDataTable(dt_relatedness)
+  assertNames(names(dt_relatedness),
+              must.include = c("country_i", "country_j", "relatedness"))
+  assertCount(k_start)
+  assertCount(k_max)
+
+  # Extract all countries featured in the relatedness data.table
+  countries <- sort(unique(c(dt_relatedness$country_i, dt_relatedness$country_j)))
+
+  # Transform undirected co-occurring countries into a directed version with every unordered
+  # country pair appearing now as two directed rows, one from each country's point of view
+  dt_directed <- rbindlist(list(
+    dt_relatedness[, .(country = country_i, partner = country_j, relatedness)],
+    dt_relatedness[, .(country = country_j, partner = country_i, relatedness)]
+  ))
+
+  # Iterate through k to test for the smallest one for which an isolated-free solution can
+  # be found
+  countries_not_isolated <- character(0)
+  for (k in seq(k_start, k_max, by = 1)) {
+    # Rank each country's partners according to their relatedness
+    dt_directed[, rank := frank(-relatedness, ties.method = "first"), by = country]
+
+    # Filter to k partners
+    dt_top_k <- dt_directed[rank <= k]
+
+    # Combine directed edges into undirected pairs again, so ("AT", partner = "DE") and
+    # ("DE", partner = "AT") would end up being country_i = "AT", country_j = "DE"
+    dt_top_k[, ":=" (country_i = pmin(country, partner), country_j = pmax(country, partner))]
+
+    # Check for remaining isolate countries, i.e. whether every country has at least one
+    # connection
+    countries_not_isolated <- unique(c(dt_top_k$country_i, dt_top_k$country_j))
+
+    # If all countries are represented, then end the iteration loop. Otherwise continue
+    # with increased k. Unless 'k_max' is reached, then throw warning message.
+    if(length(setdiff(countries, countries_not_isolated)) == 0) break
+  }
+  if(length(setdiff(countries, countries_not_isolated)) > 0) {
+    warning("No isolate-free solution found up to maximum of k = ", k_max, ". ",
+            length(setdiff(countries, countries_not_isolated)), "countries remain isolated.")
+  }
+
+  # Transform directed top-k edges back into undirected edge list and introducing flag for
+  # mutuality of direction in each country pair (n_directions is either 1 or 2)
+  dt_top_k[, n_directions := .N, by = .(country_i, country_j)]
+  dt_top_k <- unique(dt_top_k[, .(country_i, country_j, mutual = (n_directions == 2))])
+
+  # Reattach relatedness values to this edge list
+  dt_top_k <- merge(dt_top_k, dt_relatedness[, .(country_i, country_j, relatedness)],
+                    by = c("country_i", "country_j"))
+  dt_top_k[, k_used := k]
+  dt_top_k
+}
+
+# --- Function 14 ------------------------------------------------------------------------
+#' @description
+#' A short description...
+#'
+#' Inputs:
+#' @param dt_nodes description
+#' @param dt_edges description
+#' @param seed description
+#' @param labels description
+#'
+#' Output:
+#' @returns description
+build_relatedness_plot <- function(dt_nodes, dt_edges, seed = 20260916, labels = NULL) {
+  # Check for valid input
+  require(checkmate)
+  require(igraph)
+  require(ggraph)
+  require(tidygraph)
+  assertDataTable(dt_nodes)
+  assertNames(names(dt_nodes), must.include = c("country", "n_connections"))
+  assertDataTable(dt_edges)
+  assertNames(names(dt_edges),
+              must.include = c("country_i", "country_j", "relatedness", "mutual"))
+  assertCount(seed)
+  assertCharacter(labels, null.ok = TRUE)
+
+  countries <- sort(unique(c(dt_edges$country_i, dt_edges$country_j)))
+  dt_nodes_present <- dt_nodes[country %in% countries]
+
+  # Build the graph from the country and relatedness data
+  graph_relatedness <- graph_from_data_frame(
+    dt_edges[, .(country_i, country_j, relatedness, mutual)],
+    directed = FALSE,
+    vertices = dt_nodes_present[, .(country, n_connections)]
+  )
+
+  # Detect the community structure following Louvain
+  communities <- cluster_louvain(graph_relatedness,
+                                 weights = E(graph_relatedness)$relatedness)
+  V(graph_relatedness)$community <- as.factor(membership(communities))
+
+  print(table(V(graph_relatedness)$community))
+
+  # Choose the coloring scale for the communities based on how many communities there are
+  scale_community <- if(nlevels(V(graph_relatedness)$community) <= 8) {
+    scale_color_manual(values = colorblindfriendly(), guide = "none")
+  } else {
+    scale_color_viridis_d(guide = "none")
+  }
+
+  # Create the relatedness plot using force-directed layout (Fruchterman-Reingold)
+  set.seed(seed)
+  plot_relatedness <-
+    ggraph(graph_relatedness, layout = "fr") +
+    geom_edge_link(aes(linetype = mutual), color = "grey85", alpha = 0.75) +
+    geom_node_point(aes(size = n_connections, color = community)) +
+    scale_edge_linetype_manual(values = c("TRUE" = "solid", "FALSE" = "dotted"),
+                               labels = c("TRUE" = "Beidseitig", "FALSE" = "Einseitig"),
+                               name = "Gegenseitigkeit der Präferenz",
+                               guide = guide_legend(
+                                 position = "top",
+                                 override.aes = list(edge_color = lmu_default_color(),
+                                                     edge_alpha = 1))) +
+    scale_community +
+    scale_size_continuous(range = c(1, 5), name = "Summe der Grade (je Land)",
+                          guide = guide_legend(position = "bottom")) +
+    theme_void() +
+    theme(legend.title = element_text(vjust = 0.6),
+          plot.background = element_rect(fill = lmu_colors$white, color = NA),
+          panel.background = element_rect(fill = lmu_colors$white, color = NA))
+
+  # Add German node labels if provided
+  if(is.null(labels) == TRUE) {
+    plot_relatedness <- plot_relatedness +
+      geom_node_text(aes(label = name), repel = TRUE, size = 3,
+                     color = lmu_default_color(), segment.color = NA)
+  } else {
+    plot_relatedness <- plot_relatedness +
+      geom_node_text(aes(label = fifelse(name %in% names(labels), labels[name], name)),
+                     repel = TRUE, size = 3, color = lmu_default_color(), segment.color = NA)
+  }
+
+  # Return the final plot
+  plot_relatedness
 }
