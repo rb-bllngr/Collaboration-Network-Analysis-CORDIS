@@ -509,7 +509,7 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
   assertNames(names(dt_nodes), must.include = c("country", "isEU", "n_connections"))
   assertDataTable(dt_edges)
   assertNames(names(dt_edges),
-              must.include = c("country_i", "country_j", "n_organisation_pairs"))
+              must.include = c("country_i", "country_j", "sum_weight"))
   assertCount(seed)
 
   # Add an edge-level EU membership flag analogous to 'build_country_plot_map()'
@@ -610,14 +610,20 @@ build_ranking_evolution_plot <- function(dt_rank, ranked_by, y_label) {
 
 # --- Function 12 ------------------------------------------------------------------------
 #' @description
-#' A short description...
+#' Build country-pair relatedness data.table from project-level collaboration. This follows
+#' the occurrence matrix logic of Hidalgo et al (2007) and Steijn (2021) of a binary 
+#' project x country matrix O, deriving country-country co-occurrence matrix C = O^T * O
+#' from it and normalising via EconGeo::relatedness(). It measures project co-participation
+#' between countries.
 #'
 #' Inputs:
-#' @param dt_country_project description
-#' @param method description
+#' @param dt_country_project data.table. Must contain columns projectID and country. Should
+#'                           already be restricted to programme and valid ISO2 codes.
+#' @param method Character string. Default is 'prob'; acts as the normalisation method
+#'               passed to EconGeo::relatedness().
 #'
 #' Output:
-#' @returns description
+#' @returns A data.table object with columns country_i, country_j, and relatedness
 compute_relatedness <- function(dt_country_project, method = "prob") {
   # Check for valid input
   require(checkmate)
@@ -668,15 +674,18 @@ compute_relatedness <- function(dt_country_project, method = "prob") {
 
 # --- Function 13 ------------------------------------------------------------------------
 #' @description
-#' A short description...
+#' Determines each country's top k preferred connections by relatedness measure, starting
+#' at k_start and increasing k until no isolated countries remain.
 #'
 #' Inputs:
-#' @param dt_relatedness description
-#' @param k_start description
-#' @param k_max description
+#' @param dt_relatedness data.table. Must contain columns country_i, country_j, and
+#'                       relatedness. Matches the output of 'compute_relatedness()'.
+#' @param k_start Integer. Default is 4; starting number of top connections kept per country.
+#' @param k_max Integer. Default is 10; safety net to avoid infinite loop.
 #'
 #' Output:
-#' @returns description
+#' @returns A data.table of retained edges: country_i, country_j, relatedness, k_used, and
+#' mutual.
 find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
   # Check for valid input
   require(checkmate)
@@ -738,16 +747,22 @@ find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
 
 # --- Function 14 ------------------------------------------------------------------------
 #' @description
-#' A short description...
+#' Builds an abstract force-directed plot of network's top-k preferential connections,
+#' colored by detected community (Louvain-Method; Blondel et al. 2008) with mutual vs.
+#' one-sided top-k membership distinguished by linetype and node size proportional to
+#' country's aggregated (raw, unnormalised) organisation-level degree
 #'
 #' Inputs:
-#' @param dt_nodes description
-#' @param dt_edges description
-#' @param seed description
-#' @param labels description
+#' @param dt_nodes data.table. Must contain columns country and n_connections.
+#' @param dt_edges data.table. Must contain columns country_i, country_j, relatedness, and
+#'                 mutual. Matches the output of 'find_relatedness_top_k()'.
+#' @param seed Numeric scalar. Default is 20260916; for reproducible force-directed layout
+#' @param labels Named character vector. Default NULL; optional. Maps ISO2 country codes
+#'               to German label names for node text. If not provided, raw ISO2 codes are
+#'               used as node labels
 #'
 #' Output:
-#' @returns description
+#' @returns A ggplot object.
 build_relatedness_plot <- function(dt_nodes, dt_edges, seed = 20260916, labels = NULL) {
   # Check for valid input
   require(checkmate)
