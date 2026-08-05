@@ -1,13 +1,140 @@
-# manage_country_information.R: Compare CORDIS data ISO2 codes to UN WPP2024 data codes,
-#                               and fix deviations by hand
-
-# TODO: FIX MALFORMED COUNTRY ENTRIES BY HAND (IF REASONABLE EFFORT REQUIRED)
-# TODO: ---> HERE?????
+# manage_country_information.R: Fix missing/malformed country entries via nutsCode-prefix
+#                               extraction (and geolocation as fallback), compare CORDIS
+#                               data ISO2 codes to UN WPP2024 data codes, and fix remaining
+#                               deviations by hand.
 
 # Import CORDIS data and exclude missing/malformed ISO2 country codes
 cordis <- readRDS(file.path(PATHS$DATA_INT, "cordis.RDS"))
-message(cordis[is.na(country) == TRUE | grepl(pattern = "^[A-Z]{2}$", country) == FALSE, .N],
-        " organisations excluded due to missing/malformed ISO2 country codes")
+
+# Create snapshot of all origingally malformed entries
+malformed_snapshot <- cordis[is.na(country) == TRUE |
+                               grepl(pattern = "^[A-Z]{2}$", country) == FALSE,
+                             .(organisationID, name, geolocation, nutsCode, city,
+                               country_malformed = country)]
+message(nrow(malformed_snapshot), " entries with missing/malformed ISO country codes ",
+        "identified. Attempting correction before excluding them.")
+
+# Inspect these entries by hand once, to get an overview of possible problem solutions
+# View(malformed_snapshot)
+malformed_snapshot[, .N, by = country_malformed]
+
+# Creating a log of which fixing tier resolved which organisation (important for checking,
+# whether fixes are actually valid)
+correction_log <- data.table(organisationID = character(0), tier = character(0))
+
+# Tier 1: nutsCode-prefix extraction. Check validity of nutsCode as fixing method
+cordis[!is.na(country) & grepl("^[A-Z]{2}$", country) & !is.na(nutsCode),
+       .N, by = .(match = substr(nutsCode, 1, 2) == country)]
+# Note: The first two characters of nutsCode agree with the existing (valid) country field
+# in 321,816 of 321,828 non-malformed rows (> 99.99%). Deviations for the 12 disagreements
+# can be primarily be explained by distinctions in treatment of overseas territories (New
+# Caledonia folded into France's prefix) and different Belgian cities and organisations
+# with the same Dutch (placeholder?) NUTS prefix --> no systematic weakness!
+# View(cordis[!is.na(country) & grepl("^[A-Z]{2}$", country) &
+#       !is.na(nutsCode) & substr(nutsCode, 1, 2) != country,
+#       .(organisationID, name, country, nutsCode, city, geolocation)])
+
+# Take still malformed entries and impute country code by extracting prefix of nutsCode
+malformed_still <- cordis[(is.na(country) == TRUE) | (grepl("^[A-Z]{2}$", country) == FALSE),
+                          .(organisationID, name, geolocation, nutsCode, city, country)]
+
+nuts_available <- malformed_still[(is.na(nutsCode) == FALSE)]
+nuts_available[, country_nuts := substr(nutsCode, 1, 2)]
+
+# Check whether NUTS' codes are valid (i.e. two uppercase letters) and flag anything that
+# is not for manual review
+nuts_invalid <- nuts_available[grepl("^[A-Z]{2}$", country_nuts) == FALSE]
+if (nrow(nuts_invalid) > 0) {
+  message(nrow(nuts_invalid), " entries have malformed nutsCode prefix. ",
+          "Fall through to manual review.")
+}
+nuts_available <- nuts_available[grepl("^[A-Z]{2}$", country_nuts) == TRUE]
+
+# Update correction log with Tier 1 fix
+message(nrow(nuts_available), " entries resolved via nutsCode-prefix imputation. ",
+        nrow(malformed_snapshot) - nrow(nuts_available), " unresolved and falling through",
+        " to next tier.")
+correction_log <- rbind(correction_log, data.table(
+  organisationID = unique(nuts_available$organisationID),
+  tier = "Tier 1: nutsCode"
+))
+
+# Merge the CORDIS data with the Tier 1 fixed country code data
+cordis[nuts_available, on = "organisationID", country := i.country_nuts]
+
+# Tier 2: Geolocation-based point-in-polygon imputation using 'maps::map.where()'
+malformed_still <- cordis[(is.na(country) == TRUE) | (grepl("^[A-Z]{2}$", country) == FALSE),
+                          .(organisationID, name, geolocation, nutsCode, city, country)]
+malformed_still[,
+  c("latitude", "longitude") := tstrsplit(geolocation, ",", type.convert = TRUE)
+]
+geolocation_available <- malformed_still[(is.na(latitude) == FALSE) &
+                                           (is.na(longitude) == FALSE)]
+
+# Look up the country membership via point-in-polygon using 'maps::map.where()'
+geolocation_available[, country_name := maps::map.where(database = "world",
+                                                        x = longitude, y = latitude)]
+
+# Inspecting the assignment via 'maps::map.where()' done for plausibility based on city
+# and organisation names
+# View(geolocation_available)
+# Note: All entries seem logically assigned!
+
+# Strip country name after colon for subregional descriptions done in 'maps::map.where()'
+# and use 'countrycode()' to convert names to ISO2 codes for all remaining entries
+geolocation_available[, country_name := sub(":.*$", "", country_name)]
+geolocation_available[, country_iso2 := countrycode(
+  sourcevar = country_name, origin = "country.name",
+  destination = "iso2c", custom_match = c("UK" = "UK")
+)]
+
+# Update correction log with Tier 2 fix
+unresolved <- geolocation_available[is.na(country_iso2) == TRUE]
+message(nrow(geolocation_available) - nrow(unresolved), " entries resolved via ",
+        "geolocational imputation. ", nrow(unresolved), " unresolved and falling through ",
+        "to manual review.")
+correction_log <- rbind(correction_log, data.table(
+  organisationID = unique(geolocation_available[is.na(country_iso2) == FALSE, organisationID]),
+  tier = "Tier 2: geolocation"
+))
+
+# Merge the CORDIS data with the Tier 2 fixed country code data
+cordis[geolocation_available[is.na(country_iso2) == FALSE], on = "organisationID",
+       country := i.country_iso2]
+
+# Tier 3: Manual fixing
+malformed_still <- cordis[(is.na(country) == TRUE) | (grepl("^[A-Z]{2}$", country) == FALSE),
+                          .(organisationID, name, geolocation, nutsCode, city, country)]
+if (nrow(malformed_still) > 0) {
+  message(nrow(malformed_still), " entries remain malformed after Tier 1 and 2; manual ",
+          "fix is required.")
+  # View(malformed_still)
+  # Note: Not needed for this specific data set anymore, as all malformed/missing country
+  # code entries have already been corrected but fill in manually and uncomment if required
+  # fix_manually <- data.table(organisationID = c(), country = c())
+  # correction_log <- rbind(correction_log, data.table(
+  #   organisationID = unique(fix_manually$organisationID), tier = "Tier 3: manual"
+  # ))
+  # cordis[fix_manually, on = "organisationID", country := i.country]
+} else {
+  message("No entries required manual Tier 3 correction for this dataset.")
+}
+
+# Overview over all the changes applied to fix the country code inconsistencies
+review_table <- merge(malformed_snapshot, correction_log, by = "organisationID", all.x = TRUE)
+review_table[cordis, country_fixed := i.country, on = "organisationID"]
+review_table[is.na(tier) == TRUE, tier := "unresolved"]
+
+# Catch accidental duplication from the merge
+stopifnot(nrow(review_table) == nrow(malformed_snapshot))
+
+# Sort review table by tiers
+setorder(review_table, tier, organisationID)
+# View(review_table[, .(organisationID, name, geolocation, city, nutsCode, country_malformed,
+#                       tier, country_fixed)])
+
+# Exclude anything still malformed from existing script (especially applied when using the
+# latest CORDIS data instead of frozen snapshot)
 cordis <- cordis[is.na(country) == FALSE & grepl(pattern = "^[A-Z]{2}$", country) == TRUE]
 
 # Import UN data from World Population Prospect Report's R-package version wpp2024. Restrict
