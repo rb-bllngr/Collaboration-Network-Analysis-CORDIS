@@ -1,3 +1,6 @@
+# plot_styling.R: Define project-consistent plot style, labelling helpers and plot saving
+#                 function.
+
 # --- Project Colors ---------------------------------------------------------------------
 
 lmu_colors <- list(
@@ -18,7 +21,7 @@ set1 <- palette.colors(2, "Set1")
 
 theme_lmu <- function(base_size = 12, base_family = "sans") {
   theme_minimal(base_size = base_size, base_family = base_family) +
-    theme(text = element_text(size = base_size + 0),  # TODO: originally +11
+    theme(text = element_text(size = base_size + 0),  # optionally: originally +11
 
           # Title
           plot.title = element_text(face = "bold", color = lmu_colors$black, size = base_size + 2),
@@ -26,13 +29,13 @@ theme_lmu <- function(base_size = 12, base_family = "sans") {
           plot.caption = element_text(color = lmu_colors$black, size = base_size - 2),
 
           # Axes
-          axis.title = element_text(color = lmu_colors$black),  # TODO: face = "bold"
+          axis.title = element_text(color = lmu_colors$black),  # optionally: face = "bold"
           axis.text = element_text(color = lmu_colors$black),
           axis.title.x = element_text(margin = margin(t = 10)),
           axis.title.y = element_text(margin = margin(r = 10)),
 
           # Legend
-          legend.title = element_text(color = lmu_colors$black, # TODO: face = "bold"
+          legend.title = element_text(color = lmu_colors$black, # optionally: face = "bold"
                                       hjust = 0),
           legend.text = element_text(color = lmu_colors$black),
           legend.position = "right",
@@ -47,7 +50,7 @@ theme_lmu <- function(base_size = 12, base_family = "sans") {
 
           # Miscellaneous
           plot.title.position = "plot",
-          strip.text = element_text(color = lmu_colors$black)  # TODO: face = "bold"
+          strip.text = element_text(color = lmu_colors$black)  # optionally: face = "bold"
     )
 }
 
@@ -112,7 +115,7 @@ eu27 <- c(
   HU = "Ungarn",
   CY = "Zypern"
 )
-eu28 <- c(eu27[1:26], UK = "Vereinigtes Königreich", eu27[27])
+eu28 <- c(sort(eu27)[1:26], UK = "Vereinigtes Königreich", sort(eu27)[27])
 
 associated_countries <- list(
   H2020 = c(
@@ -166,13 +169,19 @@ country_labels_EU_plus_associated <- list(
 
 # --- Saving Function --------------------------------------------------------------------
 
-save_plot_lmu <- function(plot, filename, folder = "Plots", width = 10, height = 5.625,
+save_plot_lmu <- function(plot, filename, folder = "Plots",
+                          width = 10, height = 5.625,
                           dpi = 300, bg = lmu_colors$white) {
   if (!dir.exists(folder)) {
     dir.create(folder, recursive = TRUE)
   }
 
   full_path <- file.path(folder, filename)
-  ggsave(filename = full_path, plot = plot, width = width, height = height, dpi = dpi, bg = bg)
+  ggsave(filename = full_path,
+         plot = plot,
+         width = width,
+         height = height,
+         dpi = dpi,
+         bg = bg)
   message("Plot saved under: ", full_path)
 }
