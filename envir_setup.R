@@ -6,12 +6,7 @@ PATHS <- list(
   DATA_INT = "Data/Intermediate"
 )
 
-# Source helper functions
-source("plot_styling.R")
-source("functions.R")
-
-# TODO:
-# invisible(lapply(paths, dir.create, showWarnings = FALSE, recursive = TRUE))
+invisible(lapply(PATHS, dir.create, showWarnings = FALSE, recursive = TRUE))
 
 # Install and load the 'pak' package to access GitHub packages
 if (!requireNamespace("pak", quietly = TRUE)) {
@@ -21,21 +16,21 @@ if (!requireNamespace("pak", quietly = TRUE)) {
 # GitHub packages
 github_packages <- c("PPgp/wpp2024")
 
-# Increase time for install GitHub package as its quite large
+# Increase time allowed to install GitHub package as its quite large
 options(timeout = 600)
 
 # Install or update GitHub packages
-for (packages in github_packages) {
+for (repository in github_packages) {
   # Extract package name from the repository string
-  pkg <- sub(".*/", "", packages)
-  
+  repo <- sub(".*/", "", repository)
+
   # Check if the package is installed
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    message("Installing GitHub package:", pkg)
-    pak::pak(paste0("github::", packages))
+  if (!requireNamespace(repo, quietly = TRUE)) {
+    message(paste("Installing GitHub package:", repo))
+    pak::pak(paste0("github::", repository))
   }
 
-  library(pkg, character.only = TRUE)
+  library(repo, character.only = TRUE)
 }
 
 # List of CRAN packages. Every package needed for project beside default packages in
@@ -53,7 +48,7 @@ packages <- c(
   "igraph",
   # Install package for visualization of networks
   "ggplot2",
-  # Install package for visualization if world map
+  # Install package for visualization of world map
   "maps",
   # Install package for colorblind-friendly coloring scales
   "RColorBrewer",
@@ -65,7 +60,9 @@ packages <- c(
   "ggraph",
   "tidygraph",
   # Install package for converting country names to codes and vice versa
-  "countrycode"
+  "countrycode",
+  # Install package for relatedness computation
+  "EconGeo"
 )
 
 # Set CRAN mirror
@@ -79,6 +76,10 @@ for (pkg in packages) {
     library(pkg, character.only = TRUE)
   }
 }
+
+# Source helper functions and project-consistent plot styling
+source("plot_styling.R")
+source("functions.R")
 
 # Inform the user to restart R if needed
 message("If you experience any issues with loaded packages,
