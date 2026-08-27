@@ -63,7 +63,7 @@ plot_coordinator_centrality <-
   scale_x_continuous(transform = scales::pseudo_log_trans(base = 10),
                      breaks = c(0, 1, 10, 100, 1000)) +
   scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
-  labs(x = "Anzahl Organisation in Koordinatorrolle [pseudo-log10]",
+  labs(x = "Anzahl Projekte, die Organisation in Koordinatorrolle [pseudo-log10]",
        y = "Normierte Zentralität") +
   facet_grid(measure ~ programme, scales = "free_y",
              labeller = labeller(measure = mapping_centrality)) +
@@ -72,8 +72,7 @@ save_plot_lmu(plot_coordinator_centrality, "roles_centrality_coordinator.png",
               width = 8, height = 8)
 
 # Spearman correlation between coordination share/coordinator role count and each centrality
-# measure, programme-specific (for closeness/eigenvector centrality, giant component-only).
-# Answers the question: Does more coordination relate to higher centrality?
+# measure, programme-specific; answers question: does more coordination relate to higher centrality?
 dt_roles_corr <- rbindlist(lapply(programmes, function(prog) {
     # Reduce data set to giant component subset within each programme (analogous to same
     # behaviour for the centrality correlation comparison in 'network_centrality.R')
@@ -144,7 +143,6 @@ for (measure in names(centrality)) {
 # newly/not anymore participating organisations
 dt_persistence <- merge(dt_roles[programme == "H2020"], dt_roles[programme == "HORIZON"],
                         by = "organisationID", all = TRUE, suffixes = c("_h2020", "_horizon"))
-# Note: Reminder that these are only the organisations which are part of giant component!
 
 # Check how many organisations originate from each of the networks
 message("Organisations only in H2020: ", dt_persistence[is.na(is_coordinator_horizon), .N],
@@ -239,6 +237,8 @@ position_quadrant_cell <- function(values, movement = 0.49) {
 }
 
 # Variant No. 1: Place scatter points for the quadrant plot using uniformly-shifted jitters
+#                (using seed for reproducibility purposes)
+set.seed(20260916)
 dt_persistence[, ":=" (
   jitter_h2020 = as.numeric(category_h2020) + runif(.N, -0.4999, 0.4999),
   jitter_horizon = as.numeric(category_horizon) + runif(.N, -0.4999, 0.4999)
@@ -432,6 +432,3 @@ for (name in names(centrality)) {
   # Save resulting plots individually named according to centrality measure
   save_plot_lmu(plot_single_measure, paste0("roles_persistence_centrality_", name, ".png"))
 }
-##########################################################################################
-# TODO: FIND THE BEST WAY TO DETERMINE SCALING AND AXIS-RANGE FOR ALL FOUR MEASURES ######
-##########################################################################################

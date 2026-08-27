@@ -216,7 +216,7 @@ dt_country_density[(country_i != country_j) & (is.na(density_relative) == TRUE),
                    by = .(programme, country_i)][order(programme, -N)]
 
 # Handle first NA layer by restricting data to both countries having >= 2 organisations each
-# Note: This distinguishes variable 'collab_preference' from downstream preference anaylsis!
+# Note: This distinguishes variable 'collab_preference' from downstream preference analysis!
 dt_country_density_multi <- dt_country_density[(n_organisations_i > 1) & (n_organisations_j > 1)]
 
 # Diagnose the scope of the 'density_relative' NA problem:
@@ -234,9 +234,9 @@ dt_country_density_multi[country_i != country_j, .(
 dt_country_density_multi[(country_i == country_j) & (density_within_i == 0),
                          .(country = country_i, n_organisations_i), by = programme]
 
-# Handle second NA layer by converting NaN and Inf into explicit NA_real_ applied AFTER
-# multi-organisation restriction so it is clearly second, distinct source of missingness
-dt_country_density_multi[(is.nan(density_relative) == TRUE) | (is.infinite(density_relative) == TRUE),
+# Handle second NA layer on 'dt_country_density' itself by converting NaN and Inf into
+# explicit NA_real_ so this explicit object becomes cleaned up version referenced in results
+dt_country_density[(is.nan(density_relative) == TRUE) | (is.infinite(density_relative) == TRUE),
                          density_relative := NA_real_]
 
 # Check why this does not undermine variable 'collab_preference': NAs only ever occur on

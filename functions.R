@@ -101,7 +101,7 @@ download_and_unzip <- function(url, destination) {
 #'
 #' Inputs:
 #' @param subdirectory Character string. Subdirectory name within raw data directory.
-#' @param filename Character string. CSV filename to load.
+#' @param filename Character string. XLSX filename to load.
 #'
 #' Output:
 #' @returns A data.table of the referenced data.
@@ -147,8 +147,9 @@ build_collaboration_network <- function(dt) {
               must.include = c("projectID", "organisationID", "role", "country"))
 
   # Build the participation table of organisations: Retain only the columns needed for
-  # constructing the uni-modal network plus columns used as node-level attributes
-  network <- dt[, .(projectID, organisationID)]
+  # constructing the uni-modal network and de-duplicate to one row per organisation-project
+  # pair, since some rows are duplicated, which would otherwise inflate edge weights
+  network <- unique(dt[, .(projectID, organisationID)])
 
   # Self-join the network to get all pairs of co-participating organisations. Only the pairs
   # where organisationID < i.organisationID are kept to avoid duplicates in undirected graph
@@ -163,7 +164,7 @@ build_collaboration_network <- function(dt) {
   # can theoretically perform different roles in the same project)
   nodes <- dt[, .(
     n_proj  = uniqueN(projectID),
-    n_coord = sum(role == "coordinator"),
+    n_coord = uniqueN(projectID[role == "coordinator"]),
     country = first(country)
   ), by = organisationID]
 
@@ -403,6 +404,7 @@ build_graph_fundamentals <- function(dt_nodes, dt_edges, prog, eu = FALSE,
 
   # Additionally, take the N-1 overall strongest links between countries, independent of
   # the maximum spanning tree
+  assertTRUE(nrow(dt_edges_prog) >= (vcount(graph_country) - 1))
   dt_strongest_Nminus1 <- dt_edges_prog[order(-sum_weight)][
     1:(vcount(graph_country) - 1), .(country_i, country_j)
   ]
@@ -434,7 +436,7 @@ build_country_plot_map <- function(dt_nodes, dt_edges, world) {
   require(checkmate)
   assertDataTable(dt_nodes)
   assertNames(names(dt_nodes),
-              must.include = c("country", "latitude", "longitude", "n_connections"))
+              must.include = c("country", "latitude", "longitude", "isEU", "n_connections"))
   assertDataTable(dt_edges)
   assertNames(names(dt_edges),
               must.include = c("country_i", "country_j", "sum_weight"))
@@ -581,7 +583,8 @@ build_ranking_evolution_plot <- function(dt_rank, ranked_by, y_label) {
   # Work on copied data.table so the user's data.table is untouched. Compute rank on the
   # requested column
   dt_rank <- copy(dt_rank)
-  dt_rank[, rank := frank(-.SD[[1]]), by = .(programme, measure), .SDcols = ranked_by]
+  dt_rank[, rank := frank(-.SD[[1]], ties.method = "first"),
+          by = .(programme, measure), .SDcols = ranked_by]
 
   # Plot the four centrality measure ranking evolution from H2020 to HORIZON each
   plots <- list()
@@ -611,7 +614,7 @@ build_ranking_evolution_plot <- function(dt_rank, ranked_by, y_label) {
 # --- Function 12 ------------------------------------------------------------------------
 #' @description
 #' Build country-pair relatedness data.table from project-level collaboration. This follows
-#' the occurrence matrix logic of Hidalgo et al (2007) and Steijn (2021) of a binary 
+#' the occurrence matrix logic of van Eck & Waltman (2009) and Steijn (2021) of a binary 
 #' project x country matrix O, deriving country-country co-occurrence matrix C = O^T * O
 #' from it and normalising via EconGeo::relatedness(). It measures project co-participation
 #' between countries.
@@ -640,8 +643,8 @@ compute_relatedness <- function(dt_country_project, method = "prob") {
   # Build a binary project x country participation matrix (following the theoretical frame
   # of the occurrence matrix O in Steijn (2021))
   matrix_occurrence <- as.matrix(table(dt_occurrence$projectID, dt_occurrence$country))
-  # Note: This follows Steijn's comment on rows indicating projects (places) and columns
-  # indicating countries (entities) which requires O^T * O instead of O * O^T!
+  # Note: This follows Steijn's comment on rows indicating projects and columns indicating
+  # countries which requires O^T * O instead of O * O^T!
 
   # Confirm the binary property for the matrix before transposing and multiplying
   assertTRUE(all(matrix_occurrence %in% c(as.integer(0), as.integer(1))))
@@ -709,10 +712,11 @@ find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
   # Iterate through k to test for the smallest one for which an isolated-free solution can
   # be found
   countries_not_isolated <- character(0)
-  for (k in seq(k_start, k_max, by = 1)) {
-    # Rank each country's partners according to their relatedness
-    dt_directed[, rank := frank(-relatedness, ties.method = "first"), by = country]
 
+  # Rank each country's partners according to their relatedness
+  dt_directed[, rank := frank(-relatedness, ties.method = "first"), by = country]
+
+  for (k in seq(k_start, k_max, by = 1)) {
     # Filter to k partners
     dt_top_k <- dt_directed[rank <= k]
 
@@ -730,7 +734,7 @@ find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
   }
   if(length(setdiff(countries, countries_not_isolated)) > 0) {
     warning("No isolate-free solution found up to maximum of k = ", k_max, ". ",
-            length(setdiff(countries, countries_not_isolated)), "countries remain isolated.")
+            length(setdiff(countries, countries_not_isolated)), " countries remain isolated.")
   }
 
   # Transform directed top-k edges back into undirected edge list and introducing flag for
@@ -792,6 +796,7 @@ build_relatedness_plot <- function(dt_nodes, dt_edges, seed = 20260916, labels =
                                  weights = E(graph_relatedness)$relatedness)
   V(graph_relatedness)$community <- as.factor(membership(communities))
 
+  # Give out the community size breakdown to the user
   print(table(V(graph_relatedness)$community))
 
   # Choose the coloring scale for the communities based on how many communities there are

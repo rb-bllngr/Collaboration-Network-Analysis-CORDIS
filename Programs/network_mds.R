@@ -25,10 +25,13 @@ for(prog in programmes) {
                                  (country_i != country_j)]
 
   # Build the full weighted country-level graph with all edges (i.e. differing from geographic
-  # version, which was build upon MST/N-1 strongest connections)
+  # version, which was build upon MST/N-1 strongest connections). Supply an explicit vertex
+  # list so every intended country becomes a node, letting check for connected graph below
+  # actually check for connectivity instead of silently dropping countries with zero edges
   graph_mds <- graph_from_data_frame(
     dt_edges[, .(country_i, country_j, sum_weight)],
-    directed = FALSE
+    directed = FALSE,
+    vertices = data.table(name = countries)
   )
 
   # Check whether MDS is applied onto fully connected graph, as algorithm needs complete,

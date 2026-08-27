@@ -56,7 +56,9 @@ dt_hill_estimator <- rbindlist(lapply(networks, function(net) {
   degrees <- sort(degree(net)[degree(net) > 0])
   n <- length(degrees)
 
-  # Direct implementation of formula (4.4) from Kolaczyk (2010) to compute estimated alpha
+  # Direct implementation of formula (4.4) from Kolaczyk (2009) to compute estimated alpha
+  # (similar concept as Drees, De Haan, Resnick (2000), but different indexing convention
+  # and no +1 correction for alpha value)
   alpha_k <- sapply(seq_len(n - 1), function(k) {
     d_Nv_minus_i <- degrees[(n - k + 1):n]
     d_Nv_minus_k <- degrees[n - k]
@@ -68,7 +70,7 @@ dt_hill_estimator <- rbindlist(lapply(networks, function(net) {
   # Return data.table object with alpha for each k (and keep programme-column)
   data.table(k = seq_len(n - 1), alpha_k = alpha_k)}), idcol = "programme")
 
-# Build joint degree distribution according to Kolaczyk (2010), pp. 86-87. 
+# Build joint degree distribution according to Kolaczyk (2009), pp. 86-87. 
 dt_joint_degrees <- rbindlist(lapply(networks, function(net) {
   # Get degree of all edges for both nodes connected by the edge
   edges_degrees <- as_edgelist(net, names = FALSE)
@@ -80,7 +82,7 @@ dt_joint_degrees <- rbindlist(lapply(networks, function(net) {
 }), idcol = "programme")
 
 # Calculate relative frequency of each degree combination
-# Alternatively: Following Kolaczyk (2010)'s description, first to sort the nodes in all
+# Alternatively: Following Kolaczyk (2009)'s description, first to sort the nodes in all
 # edges to receive d_start <= d_end
 # dt_joint_degrees[, c("d_start", "d_end") := .(pmin(d_start, d_end), pmax(d_start, d_end))]
 dt_joint_degrees <- dt_joint_degrees[, .N, by = .(programme, d1, d2)]
@@ -154,7 +156,7 @@ dt_project_size <- cordis[, .(project_size = uniqueN(organisationID)),
                           by = .(frameworkProgramme, projectID)]
 
 # Attach project size to every organisation-project row and aggregate to organisation-level
-dt_organisations_projects <- merge(cordis[, .(frameworkProgramme, projectID, organisationID)],
+dt_organisations_projects <- merge(unique(cordis[, .(frameworkProgramme, projectID, organisationID)]),
                                    dt_project_size, by = c("frameworkProgramme", "projectID"))
 dt_organisations_projects <- dt_organisations_projects[, .(
   consortium_mean = mean(project_size),
@@ -230,30 +232,26 @@ save_plot_lmu(plot_consortium_degree, "degree_consortiumsize_lowdegree.png")
 
 # Investigate neighbour-degree behaviour among organisations by plotting knn-degree
 plot_degree_knn <-
-  ggplot(dt_metrics[!is.na(knn) & degree != 0],
-         aes(x = degree, y = knn, color = programme)) +
+  ggplot(dt_metrics[!is.na(knn) & degree != 0], aes(x = degree, y = knn)) +
   geom_point(size = 1, alpha = 0.1) +
   scale_x_log10() +
   scale_y_log10() +
-  scale_color_manual(values = colorblindfriendly()) +
   labs(x = "Grad [log10]",
-       y = "Mittlerer Grad der k-nächsten Nachbarn [log10]",
-       color = "EU-Förderprogramm") +
+       y = "Gewichteter mittlerer Grad der Nachbarn [log10]") +
+  facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top") +
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 2)))
-save_plot_lmu(plot_degree_knn, "degree_knn.png")
+  theme(legend.position = "top")
+save_plot_lmu(plot_degree_knn, "degree_knn.png", width = 12, height = 6)
 
 # Hill plot
 plot_hill <-
-  ggplot(dt_hill_estimator, aes(x = k, y = alpha_k, color = programme)) +
+  ggplot(dt_hill_estimator, aes(x = k, y = alpha_k)) +
   geom_point(size = 1, alpha = 0.5) +
-  scale_color_manual(values = colorblindfriendly()) +
-  labs(x = "k", y = expression(hat(alpha)[k]), color = "EU-Förderprogramm") +
+  labs(x = "k", y = expression(hat(alpha)[k])) +
+  facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top") +
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 2)))
-save_plot_lmu(plot_hill, "powerlaw_fit_hill.png")
+  theme(legend.position = "top")
+save_plot_lmu(plot_hill, "degree_powerlaw_hill.png", width = 12, height = 6)
 
 # Degree correlation matrix as image representation of logarithmically-transformed joint
 # degree distribution (c. Kolaczyk (2010), Fig. 4.3)

@@ -16,7 +16,7 @@ if (!requireNamespace("pak", quietly = TRUE)) {
 # GitHub packages
 github_packages <- c("PPgp/wpp2024")
 
-# Increase time allowed to install GitHub package as its quite large
+# Increase time allowed to install GitHub package as it is quite large
 options(timeout = 600)
 
 # Install or update GitHub packages
@@ -33,8 +33,7 @@ for (repository in github_packages) {
   library(repo, character.only = TRUE)
 }
 
-# List of CRAN packages. Every package needed for project beside default packages in
-# chronological order
+# List of CRAN packages. Every package needed for project beside default packages
 packages <- c(
   # Install package for downloading data from EU Commission CORDIS' URLs
   "httr",
@@ -70,7 +69,7 @@ options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # Install CRAN packages if missing
 for (pkg in packages) {
-  if (!require(pkg, character.only = TRUE)) {
+  if (!suppressWarnings(require(pkg, character.only = TRUE))) {
     message(paste("Installing CRAN package:", pkg))
     install.packages(pkg, dependencies = TRUE)
     library(pkg, character.only = TRUE)
@@ -80,6 +79,14 @@ for (pkg in packages) {
 # Source helper functions and project-consistent plot styling
 source("plot_styling.R")
 source("functions.R")
+
+# Check the directly-required packages and get installed versions
+pkgs_required <- c(packages, sub(".*/", "", github_packages))
+pkgs_info <- as.data.frame(installed.packages()[, c("Package", "Version")])
+pkgs_versions <- pkgs_info[pkgs_info$Package %in% pkgs_required, ]
+pkgs_versions <- pkgs_versions[order(pkgs_versions$Package), ]
+rownames(pkgs_versions) <- NULL
+print(pkgs_versions)
 
 # Inform the user to restart R if needed
 message("If you experience any issues with loaded packages,

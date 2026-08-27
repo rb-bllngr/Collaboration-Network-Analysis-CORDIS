@@ -16,7 +16,7 @@ message("Nodes (giant component): ", n_nodes, "; Edges (giant component): ", m_e
 
 # Estimate the peak memory usage, i.e. two (n x n) double matrices simultaneously managed
 # (distance matrix + eigenvalue matrix) by 'cmdscale()' (according to the source code of
-# 'stats::cmdscale') with 8 bytes per double entry (IEEE, 2019)
+# 'stats::cmdscale') with 8 bytes per double entry
 memory_GB <- (2 * (n_nodes * n_nodes * 8) / 1000^3)
 # Note: Convert raw bytes into Gigabytes by / (1000 (--> KB) * 1000 (--> MB) * 1000 (--> GB))
 message("Estimated peak memory for cmdscale(): ", round(memory_GB, 2), " Gigabytes")

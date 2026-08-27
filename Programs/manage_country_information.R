@@ -6,7 +6,7 @@
 # Import CORDIS data and exclude missing/malformed ISO2 country codes
 cordis <- readRDS(file.path(PATHS$DATA_INT, "cordis.RDS"))
 
-# Create snapshot of all origingally malformed entries
+# Create snapshot of all originally malformed entries
 malformed_snapshot <- cordis[is.na(country) == TRUE |
                                grepl(pattern = "^[A-Z]{2}$", country) == FALSE,
                              .(organisationID, name, geolocation, nutsCode, city,
@@ -26,7 +26,7 @@ correction_log <- data.table(organisationID = character(0), tier = character(0))
 cordis[!is.na(country) & grepl("^[A-Z]{2}$", country) & !is.na(nutsCode),
        .N, by = .(match = substr(nutsCode, 1, 2) == country)]
 # Note: The first two characters of nutsCode agree with the existing (valid) country field
-# in 321,816 of 321,828 non-malformed rows (> 99.99%). Deviations for the 12 disagreements
+# in 321,814 of 321,826 non-malformed rows (> 99.99%). Deviations for the 12 disagreements
 # can be primarily be explained by distinctions in treatment of overseas territories (New
 # Caledonia folded into France's prefix) and different Belgian cities and organisations
 # with the same Dutch (placeholder?) NUTS prefix --> no systematic weakness!
@@ -139,8 +139,11 @@ cordis <- cordis[is.na(country) == FALSE & grepl(pattern = "^[A-Z]{2}$", country
 
 # Import UN data from World Population Prospect Report's R-package version wpp2024. Restrict
 # data to start of each programme's year and extract population
+# Note: wpp2024's README mentions data - different to UN Data Portal to be for Dec 31 at
+#       midnight of each year, therefore need to take wanted year minus 1 to get population
+#       at start of year of interest (2014 - 1 = 2013, 2021 - 1 = 2020).
 data(pop1dt)
-dt_population <- pop1dt[year %in% c(2014, 2021), .(country_code, name, pop = pop * 1000, year)]
+dt_population <- pop1dt[year %in% c(2013, 2020), .(country_code, name, pop = pop * 1000, year)]
 
 # Check WPP's regional/income-group aggregates to drop
 dt_population[country_code >= 900, sort(unique(name))]
@@ -183,19 +186,23 @@ cordis[country == "UM", country := "US"]
 cordis[country == "ZZ", .(country, name, city)]
 cordis[country == "ZZ", country := "AF"]
 # (C) Answer: Vatican City is missing in R-package version --> add manually based on UN data!
+# Note: Unlike wpp2024's package data (Dec 31 midnight, requiring -1), these values are
+#       directly for Jan 1 of the target years (2014, 2021) and are correct as-is. They
+#       are labeled year = 2013/2020 here purely to align with the join keys used below,
+#       not because the same timing adjustment applies to them.
 nrow(dt_population[iso2 == "VA"])
 dt_population <- rbind(
   dt_population,
   data.table(country_code = NA_integer_,
              name = "Vatican City",
              pop = c(587, 524),
-             year = c(2014, 2021),
+             year = c(2013, 2020),
              iso2 = "VA")
 )
 
 # Split population data by programme year and merge population information onto CORDIS data
-dt_population_h2020 <- dt_population[year == 2014, .(iso2, population_h2020 = pop)]
-dt_population_horizon <- dt_population[year == 2021, .(iso2, population_horizon = pop)]
+dt_population_h2020 <- dt_population[year == 2013, .(iso2, population_h2020 = pop)]
+dt_population_horizon <- dt_population[year == 2020, .(iso2, population_horizon = pop)]
 cordis[dt_population_h2020, population_h2020 := i.population_h2020, on = .(country = iso2)]
 cordis[dt_population_horizon, population_horizon := i.population_horizon, on = .(country = iso2)]
 

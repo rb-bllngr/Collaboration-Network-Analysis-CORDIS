@@ -76,8 +76,8 @@ for (prog in programmes) {
 
   # Average path length:
   message("--- Average path length ...")
-  # Caution, as this section is computationally expensive (takes approximately ___ minutes
-  # to be re-computed), computation is skipped to use checkpoint .RDS if already available
+  # Caution, as this section is computationally expensive computation is skipped to use
+  # checkpoint .RDS if already available
   results_pathlength[[prog]] <- data.table(
     programme = prog,
     # Compute on giant-component, as only well-defined on connected graph
@@ -188,7 +188,7 @@ dt_cores_summary <- dt_cores[, .(
   cores_mean = mean(coreness),
   cores_median = median(coreness),
   # Maximum core number, i.e. largest value k for which a non-empty k-core exists
-  degenerate = max(coreness)
+  cores_max = max(coreness)
 ), by = programme]
 print(dt_cores_summary)
 
@@ -217,7 +217,7 @@ dt_clustering_corr <- rbindlist(lapply(programmes, function(prog) {
   )
 }))
 print(dt_clustering_corr)
-# Yes, extremely high correlation within both programmes (0.9990 and 0.9994)!
+# Yes, extremely high correlation within both programmes!
 
 # Scatter plot of local clustering coefficient vs. degree
 plot_clustering_degree <-

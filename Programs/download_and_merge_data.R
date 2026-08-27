@@ -83,15 +83,19 @@ message("Organisations loaded: ", nrow(organisations), " rows across both progra
 
 # Join organisations to projects via ProjectID: organisations.projectID <=> projects.id
 # Use left join to keep all organisation rows and add project-level attributes
-cordis <- organisations[projects, on = .(projectID = id), nomatch = NA]
+cordis <- projects[organisations, on = .(id = projectID), nomatch = NA]
 message("Joined dataset: ", nrow(cordis), " rows, ", ncol(cordis), " columns")
 
 # Check for any malformed frameworkProgramme entries
-cordis[, .N, by = frameworkProgramme]
-nrow(cordis[!frameworkProgramme %in% c("H2020", "HORIZON"), .N, by = projectID])
+print(cordis[, .N, by = frameworkProgramme])
+message("Data contains ",
+        nrow(cordis[!frameworkProgramme %in% c("H2020", "HORIZON"), .N, by = projectID]),
+        " entries with malformed frameworkProgramme.\n(Snapshot does not contain malformed",
+        " entries. If any for latest CORDIS data, these are excluded.)")
 
 # Convert variable frameworkProgramme to Factor
 cordis[, frameworkProgramme := factor(frameworkProgramme, levels = c("H2020", "HORIZON"))]
+cordis <- cordis[!is.na(frameworkProgramme)]
 
 # Save the joined and individual programme-networks
 saveRDS(cordis, file.path(PATHS$DATA_INT, "cordis.RDS"))

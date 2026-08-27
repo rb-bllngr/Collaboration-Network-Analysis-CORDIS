@@ -83,7 +83,8 @@ for (prog in programmes) {
 
   # Compute eigenvector centrality, but eigenvector will typically give nodes outside giant
   # component around zero centrality (even though they might be structurally important only
-  # due to drive by dominant eigenvalue); for unweighted and weighted (= strengths) version.
+  # due to drive by dominant eigenvalue); for unweighted and weighted (i.e. project counts
+  # of co-participation) version.
   message("--- Computing eigenvector centrality ...")
   giant_comp_eigenv_weighted <- eigen_centrality(giant_comp_weighted,
                                                  weights = E(giant_comp_weighted)$weight)$vector
@@ -200,6 +201,12 @@ dt_overlap <- rbindlist(lapply(programmes, function(prog) {
 }))
 print(dt_overlap[order(programme, measure, top_ranks_n)])
 
+# Order the centrality measure, so they appear in determined order in plots by mapping
+# this scripts specific names onto generalized order (cf. 'plot_styling.R')
+centr_order <- c("degree_norm", "betweenness_unweighted_norm",
+                 "closeness_unweighted", "eigenvector_unweighted")
+centr_mapping <- setNames(mapping_centrality[order_centrality], centr_order)
+
 # Four-way correlation among all centrality measures
 dt_fourway_long <- rbindlist(lapply(programmes, function(prog) {
   # Assemble all normalised and unweighted measure variants for the four-way-comparison
@@ -221,11 +228,6 @@ dt_fourway_long <- rbindlist(lapply(programmes, function(prog) {
                           variable.name = "centrality2",
                           value.name = "corr")
   dt_fourway_corr[, programme := prog]
-  
-  # Order the centrality measure, so they appear in determined order in plots by mapping
-  # this scripts specific names onto generalized order (cf. 'plot_styling.R')
-  centr_order <- c("degree_norm", "betweenness_unweighted_norm", "closeness_unweighted", "eigenvector_unweighted")
-  centr_mapping <- setNames(mapping_centrality[order_centrality], centr_order)
   dt_fourway_corr[, ":="(
     centrality1 = factor(centrality1, levels = centr_order),
     centrality2 = factor(centrality2, levels = rev(centr_order))
