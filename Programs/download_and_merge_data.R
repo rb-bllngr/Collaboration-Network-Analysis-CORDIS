@@ -84,6 +84,7 @@ message("Organisations loaded: ", nrow(organisations), " rows across both progra
 # Join organisations to projects via ProjectID: organisations.projectID <=> projects.id
 # Use left join to keep all organisation rows and add project-level attributes
 cordis <- projects[organisations, on = .(id = projectID), nomatch = NA]
+setnames(cordis, old = "id", new = "projectID")
 message("Joined dataset: ", nrow(cordis), " rows, ", ncol(cordis), " columns")
 
 # Check for any malformed frameworkProgramme entries
