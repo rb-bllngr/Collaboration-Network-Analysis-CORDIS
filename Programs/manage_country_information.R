@@ -179,7 +179,8 @@ sort(setdiff(iso2_cordis, iso2_wpp2024))
 #       World Population Prospects 2024, Online Edition.)
 #
 # Investigate (and fix) the deviations in ISO2 codes
-# (A) Answer: Cayman Chemical Company in Ann Arbor (Michigan, US) --> re-assign to 'US'!
+# (A) Answer: Cayman Chemical Company in Ann Arbor (Michigan, US) and Eli Lilly and Company
+#             in Indianapolis (Indiana, US) --> re-assign both to 'US'!
 cordis[country == "UM", .(country, name, city)]
 cordis[country == "UM", country := "US"]
 # (B) Answer: Afghanistan Research and Evaluation Unit (AREU) in Kabul --> re-assign to 'AF'!
@@ -212,3 +213,12 @@ sort(unique(cordis[is.na(population_horizon) == TRUE, country]))
 
 # Save CORDIS data again, now refined by the population data for each country
 saveRDS(cordis, file.path(PATHS$DATA_INT, "cordis_population.RDS"))
+
+# Save prepared geolocation data for map-based visualisations downstream
+dt_geo <- cordis[(is.na(geolocation) == FALSE) & (geolocation != ""),
+                 .(geolocation = first(geolocation)), by = organisationID]
+dt_geo[, c("latitude", "longitude") := tstrsplit(geolocation, ",", type.convert = TRUE)]
+dt_geo[, geolocation := NULL]
+message(uniqueN(cordis$organisationID) - nrow(dt_geo), " organisations excluded from ",
+        "geographical data due to missing geolocation.")
+saveRDS(dt_geo, file.path(PATHS$DATA_INT, "geodata.RDS"))

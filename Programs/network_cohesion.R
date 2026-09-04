@@ -18,7 +18,7 @@ results_smallworld <- list()
 results_smallworld_simulation <- list()
 
 # Decide whether checkpoint .RDS files for expensive intermediate computations should be
-# recomputed --> set TRUE for re-computation! (here: average path length)
+# recomputed --> set TRUE for re-computation! (here: average path length and small-world)
 recompute <- FALSE
 
 # Compute different cohesion measures for each of the programme-networks
@@ -160,25 +160,26 @@ dt_components_summary <- dt_components[, .(
 print(dt_components_summary)
 
 # Component structure: size distribution
+dt_components_max <-
+  dt_components[, .N, by = .(programme, size)][, .SD[which.max(size)], by = programme]
+
 plot_components_hist <-
   ggplot(dt_components[, .N, by = .(programme, size)],
          aes(x = size, y = N, fill = programme, color = programme)) +
   # Prevent transformation of y-values to infinite values by only visualizing the count
   # of actual appearances via 'geom_col()' instead of 'geom_histogram()'
   geom_col(position = "identity", alpha = 0.75) +
+  geom_text(data = dt_components_max, aes(label = size),
+            vjust = -0.8, hjust = 0.8, size = 5, color = programme_colors) +
   scale_x_log10() +
   scale_y_log10(limits = c(1, 10000)) +
-  scale_fill_manual(values = colorblindfriendly()) +
-  scale_color_manual(values = colorblindfriendly(), guide = "none") +
-  labs(x = "Größe der Komponente [log10]", y = "Anzahl an Komponenten [log10]",
-       fill = "EU-Förderprogramm") +
+  scale_fill_manual(values = programme_colors, guide = "none") +
+  scale_color_manual(values = programme_colors, guide = "none") +
+  labs(x = "Größe der Komponente [log10]", y = "Anzahl an Komponenten [log10]") +
+  facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top")
+  theme(legend.position = "top", panel.spacing.x = unit(1.5, "lines"))
 save_plot_lmu(plot_components_hist, "cohesion_components_histogram.png")
-# Note: minimum and maximum bars represent the following size and count, respectively
-dt_components[, .N, by = .(programme, size)][,
-  .SD[c(which.min(size), which.max(size))], by = programme
-  ]
 
 # Density
 print(dt_density)
@@ -194,12 +195,14 @@ print(dt_cores_summary)
 
 # Scatter plot of coreness vs. degree
 plot_coreness_degree <-
-  ggplot(dt_cores[degree != 0], aes(x = degree, y = coreness)) +
+  ggplot(dt_cores[degree != 0], aes(x = degree, y = coreness, color = programme)) +
   geom_point(size = 0.5, alpha = 0.1) +
   scale_x_log10() +
-  labs(x = "Grad [log10]", y = "Zugehörigkeit zu einem k-Kern") +
+  scale_color_manual(values = programme_colors, guide = "none") +
+  labs(x = "Grad [log10]", y = "Schalenindex k") +
   facet_wrap(~ programme) +
-  theme_lmu()
+  theme_lmu() +
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
 save_plot_lmu(plot_coreness_degree, "cohesion_coreness_degree.png")
 
 # Clustering coefficient: Validate weighted vs. unweighted local coefficient analogous to
@@ -219,15 +222,21 @@ dt_clustering_corr <- rbindlist(lapply(programmes, function(prog) {
 print(dt_clustering_corr)
 # Yes, extremely high correlation within both programmes!
 
+# Global clustering coefficient
+unique(dt_clustering[, coeff_global, by = programme])
+
 # Scatter plot of local clustering coefficient vs. degree
 plot_clustering_degree <-
   # Restrict network to nodes of degree > 1, as clustering is rather meaningless below that
-  ggplot(dt_clustering[degree > 1], aes(x = degree, y = coeff_local_unweighted)) +
+  ggplot(dt_clustering[degree > 1],
+         aes(x = degree, y = coeff_local_unweighted, color = programme)) +
   geom_point(size = 0.5, alpha = 0.1) +
   scale_x_log10(limits = c(1, 10000)) +
+  scale_color_manual(values = programme_colors, guide = "none") +
   labs(x = "Grad [log10]", y = "Lokaler Clustering-Koeffizient") +
   facet_wrap(~ programme) +
-  theme_lmu()
+  theme_lmu() +
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
 save_plot_lmu(plot_clustering_degree, "cohesion_clustering_degree.png")
 
 # Average path length and small-world coefficient
@@ -256,23 +265,28 @@ dt_smallworld_simulation <- rbindlist(lapply(programmes, function(prog) {
 
 # Histogram of clustering of simulated values in comparison to observed values
 plot_smallworld_clustering <-
-  ggplot(dt_smallworld_simulation, aes(x = clustering)) +
+  ggplot(dt_smallworld_simulation, aes(x = clustering, fill = programme)) +
   geom_histogram(position = "identity", bins = 100) +
   geom_vline(data = dt_smallworld,
              mapping = aes(xintercept = clustering_observed),
              color = lmu_default_color(), linetype = "twodash") +
+  scale_fill_manual(values = programme_colors, guide = "none") +
   labs(x = "Clustering-Koeffizient", y = "Anzahl an Simulationen") +
   facet_grid(programme ~ model) +
-  theme_lmu()
+  theme_lmu() +
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
 save_plot_lmu(plot_smallworld_clustering, "cohesion_smallworld_clustering.png")
 
 # Histogram of average path length of simulated values in comparison to observed values
 plot_smallworld_pathlength <-
-  ggplot(dt_smallworld_simulation, aes(x = pathlength)) +
+  ggplot(dt_smallworld_simulation, aes(x = pathlength, fill = programme)) +
   geom_histogram(position = "identity", bins = 100) +
   geom_vline(data = dt_smallworld, mapping = aes(xintercept = pathlength_observed),
              color = lmu_default_color(), linetype = "twodash") +
+  scale_x_continuous(breaks = c(2.7, 2.8, 2.9)) +
+  scale_fill_manual(values = programme_colors, guide = "none") +
   labs(x = "Mittlere Länge der kürzesten Pfade", y = "Anzahl an Simulationen") +
   facet_grid(programme ~ model) +
-  theme_lmu()
+  theme_lmu() +
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
 save_plot_lmu(plot_smallworld_pathlength, "cohesion_smallworld_pathlength.png")

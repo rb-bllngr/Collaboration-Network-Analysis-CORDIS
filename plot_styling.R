@@ -21,7 +21,7 @@ set1 <- palette.colors(2, "Set1")
 
 theme_lmu <- function(base_size = 12, base_family = "sans") {
   theme_minimal(base_size = base_size, base_family = base_family) +
-    theme(text = element_text(size = base_size + 0),  # optionally: originally +11
+    theme(text = element_text(size = base_size + 10),  # optionally: originally +11
 
           # Title
           plot.title = element_text(face = "bold", color = lmu_colors$black, size = base_size + 2),
@@ -31,8 +31,8 @@ theme_lmu <- function(base_size = 12, base_family = "sans") {
           # Axes
           axis.title = element_text(color = lmu_colors$black),  # optionally: face = "bold"
           axis.text = element_text(color = lmu_colors$black),
-          axis.title.x = element_text(margin = margin(t = 10)),
-          axis.title.y = element_text(margin = margin(r = 10)),
+          axis.title.x = element_text(margin = margin(t = 15)),
+          axis.title.y = element_text(margin = margin(r = 15)),
 
           # Legend
           legend.title = element_text(color = lmu_colors$black, # optionally: face = "bold"
@@ -76,6 +76,9 @@ colorblindfriendly <- function() {
   c(okabe_ito[-1], "#000000")
 }
 
+programme_colors <- c(H2020 = colorblindfriendly()[1], HORIZON = colorblindfriendly()[2])
+eu_colors <- c("FALSE" = colorblindfriendly()[1], "TRUE" = colorblindfriendly()[2])
+
 # Optional: Error/Warning color
 lmu_error_color <- function() {
   lmu_colors$red
@@ -84,8 +87,18 @@ lmu_error_color <- function() {
 # --- Label and Order Helpers ------------------------------------------------------------
 
 order_centrality <- c("degree", "betweenness", "closeness", "eigenvector")
-mapping_centrality <- c(degree = "Grad", betweenness = "Betweenness",
-                        closeness = "Closeness", eigenvector = "Eigenvektor")
+mapping_centrality <- c(degree = "Grad",
+                        betweenness = "Betweenness",
+                        closeness = "Closeness",
+                        eigenvector = "Eigenvektor")
+mapping_centrality_scaled <- c(degree = "Grad [log10]",
+                               betweenness = "Betweenness [pseudo-log10]",
+                               closeness = "Closeness [log10]",
+                               eigenvector = "Eigenvektor [log10]")
+mapping_centrality_scaled_stacked <- gsub(pattern = " ",
+                                          replacement = "\n",
+                                          mapping_centrality_scaled)
+
 eu27 <- c(
   BE = "Belgien",
   BG = "Bulgarien",

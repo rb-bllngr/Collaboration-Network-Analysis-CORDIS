@@ -139,6 +139,7 @@ dt_summary <- dt_centrality[, .(
 
   degree_mean = mean(degree),
   between_weighted_mean = mean(betweenness_weighted_norm),
+  between_unweighted_mean = mean(betweenness_unweighted_norm),
   close_weighted_mean = mean(closeness_weighted, na.rm = TRUE),
   close_unweighted_mean = mean(closeness_unweighted, na.rm = TRUE),
   eigenv_weighted_mean = mean(eigenvector_weighted, na.rm = TRUE),
@@ -200,6 +201,7 @@ dt_overlap <- rbindlist(lapply(programmes, function(prog) {
   }))
 }))
 print(dt_overlap[order(programme, measure, top_ranks_n)])
+print(dt_overlap[, .(overlap_mean = mean(overlap)), by = .(programme, measure)])
 
 # Order the centrality measure, so they appear in determined order in plots by mapping
 # this scripts specific names onto generalized order (cf. 'plot_styling.R')
@@ -239,8 +241,9 @@ dt_fourway_long <- rbindlist(lapply(programmes, function(prog) {
 plot_corr_heatmap <-
   ggplot(dt_fourway_long, aes(x = centrality1, y = centrality2, fill = corr)) +
   geom_tile() +
-  geom_text(aes(label = round(corr, 2)), color = lmu_colors$white, size = 3) +
-  scale_fill_gradientn(colors = RColorBrewer::brewer.pal(11, "RdBu"), limits = c(-1, 1)) +
+  geom_text(aes(label = round(corr, 2)), color = lmu_colors$white, size = 6) +
+  scale_fill_gradientn(colors = RColorBrewer::brewer.pal(11, "RdBu"),
+                       limits = c(-1, 1), breaks = seq(-1, 1, by = 0.5)) +
   scale_x_discrete(labels = centr_mapping) +
   scale_y_discrete(labels = centr_mapping) +
   labs(x = NULL, y = NULL, fill = "Spearman-Korrelationskoeffizient") +
@@ -248,21 +251,34 @@ plot_corr_heatmap <-
   theme_lmu() +
   theme(legend.position = "bottom",
         legend.direction = "horizontal",
-        legend.title = element_text(vjust = 0.8))
+        legend.title = element_text(vjust = 1.1, margin = margin(r = 10)),
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20),
+        axis.text.x = element_text(angle = 25, vjust = 0.7, hjust = 0.7)) +
+  guides(fill = guide_colorbar(barwidth = unit(8, "cm"), barheight = unit(0.5, "cm")))
 save_plot_lmu(plot_corr_heatmap, "centrality_correlation_matrix.png")
 
 # Scatter plot of betweenness vs. degree to investigate the question: Are high-degree
 # organisations simultaneously bridges? Take normalised degree and betweenness centrality
 # for inter-programme comparison; exclude isolated organisations, as both measures are zero
+dt_centrality[, mean(betweenness_unweighted_norm == 0), by = programme]
+# Note: almost 2/3 of betweenness are zero valued, so use pseudo-logarithmic scale
+sigma_between <- min(dt_centrality$betweenness_unweighted_norm[dt_centrality$betweenness_unweighted_norm > 0])
+
 plot_degree_betweenness <-
   ggplot(dt_centrality[degree != 0],
-         aes(x = degree_norm, y = betweenness_unweighted_norm)) +
+         aes(x = degree_norm, y = betweenness_unweighted_norm, color = programme)) +
   geom_point(size = 0.5, alpha = 0.25) +
   scale_x_log10(labels = scales::label_number(drop0trailing = TRUE)) +
+  scale_y_continuous(trans = scales::pseudo_log_trans(sigma = sigma_between, base = 10),
+                     breaks = c(1e-10, 1e-8, 1e-6, 1e-4, 1e-2),
+                     labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+  scale_color_manual(values = programme_colors, guide = "none") +
   labs(x = "Normierte Grad-Zentralität [log10]",
-       y = "Normierte Betweenness-Zentralität") +
+       y = "Normierte Betweenness-Zentralität\n[pseudo-log10]") +
   facet_wrap(~ programme) +
-  theme_lmu()
+  theme_lmu() +
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
 save_plot_lmu(plot_degree_betweenness, "centrality_betweenness_degree.png")
 
 # Scatter plot of eigenvector vs. degree to investigate the question: Are high-degree
@@ -272,15 +288,17 @@ save_plot_lmu(plot_degree_betweenness, "centrality_betweenness_degree.png")
 # only well-defined for giant component
 plot_degree_eigenvector <-
   ggplot(dt_centrality[(degree != 0) & (in_giant_comp == TRUE)],
-         aes(x = degree_norm, y = eigenvector_unweighted)) +
+         aes(x = degree_norm, y = eigenvector_unweighted, color = programme)) +
   geom_point(size = 0.5, alpha = 0.25) +
   scale_x_log10(labels = scales::label_number(drop0trailing = TRUE)) +
   # Switch from decimal to exponent display for y-axis as small negative exponents could
   # still be represented nicely, but large negative exponents will not
   scale_y_log10(breaks = scales::trans_breaks("log10", function(x) 10^x),
                 labels = scales::trans_format("log10", scales::math_format(10^.x))) +
+  scale_color_manual(values = programme_colors, guide = "none") +
   labs(x = "Normierte Grad-Zentralität [log10]",
-       y = "Normierte Eigenvektor-Zentralität [log10]") +
+       y = "Normierte Eigenvektor-Zentralität\n[log10]") +
   facet_wrap(~ programme) +
-  theme_lmu()
+  theme_lmu() +
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
 save_plot_lmu(plot_degree_eigenvector, "centrality_eigenvector_degree.png")

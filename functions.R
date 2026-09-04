@@ -476,12 +476,13 @@ build_country_plot_map <- function(dt_nodes, dt_edges, world) {
       values = palette_isEU,
       labels = c("FALSE" = "Kein Mitglied der Europäischen Union",
                  "TRUE" = "Mitglied der Europäischen Union"),
-      guide = guide_legend(position = "top", override.aes = list(shape = 16, size = 3))) +
-    scale_size_continuous(range = c(0.5, 5), guide = guide_legend(position = "bottom")) +
-    scale_linewidth_continuous(range = c(0.1, 2), guide = "none") +
-    labs(size = "Summe der Grade (je Land)", color = NULL) +
+      guide = guide_legend(position = "bottom", override.aes = list(shape = 16, size = 3))) +
+    scale_size_continuous(range = c(0.5, 5), guide = "none") +
+    scale_linewidth_continuous(range = c(0.2, 3), guide = "none") +
+    labs(color = NULL) +
     theme_void() +
-    theme(legend.title = element_text(vjust = 0.6),
+    theme(legend.title = element_text(vjust = 0.6, size = 16),
+          legend.text = element_text(size = 16),
           plot.background = element_rect(fill = lmu_colors$white, color = NA),
           panel.background = element_rect(fill = lmu_colors$white, color = NA))
 }
@@ -543,12 +544,13 @@ build_country_plot_abstract <- function(dt_nodes, dt_edges, seed = 20260916) {
       values = palette_isEU,
       labels = c("FALSE" = "Kein Mitglied der Europäischen Union",
                  "TRUE" = "Mitglied der Europäischen Union"),
-      guide = guide_legend(position = "top", override.aes = list(shape = 16, size = 3))) +
-    scale_size_continuous(range = c(0.5, 5), guide = guide_legend(position = "bottom")) +
-    scale_edge_width_continuous(range = c(0.1, 2), guide = "none") +
-    labs(size = "Summe der Grade (je Land)", color = NULL) +
+      guide = guide_legend(position = "bottom", override.aes = list(shape = 16, size = 3))) +
+    scale_size_continuous(range = c(0.5, 5), guide = "none") +
+    scale_edge_width_continuous(range = c(0.2, 3), guide = "none") +
+    labs(color = NULL) +
     theme_void() +
-    theme(legend.title = element_text(vjust = 0.6),
+    theme(legend.title = element_text(vjust = 0.6, size = 16),
+          legend.text = element_text(size = 16),
           plot.background = element_rect(fill = lmu_colors$white, color = NA),
           panel.background = element_rect(fill = lmu_colors$white, color = NA))
 }
@@ -592,19 +594,21 @@ build_ranking_evolution_plot <- function(dt_rank, ranked_by, y_label) {
     plots[[name]] <-
       ggplot(dt_rank[measure == name], aes(x = programme, y = rank, group = country)) +
       geom_line(alpha = 1) +
-      geom_point(shape = 21, size = 6, fill = lmu_colors$white, color = lmu_default_color()) +
-      geom_text(aes(label = rank), size = 3) +
+      geom_point(shape = 21, size = 9, fill = lmu_colors$white, color = lmu_default_color()) +
+      geom_text(aes(label = rank), size = 5) +
       geom_text_repel(data = dt_rank[(measure == name) & (programme == "HORIZON")],
-                      aes(label = country_name), segment.colour = NA, nudge_x = 0.05,
-                      direction = "y", hjust = 0, size = 3) +
-      scale_x_discrete(expand = expansion(add = c(0.1, 0.5))) +
+                      aes(label = country_name), segment.colour = NA, nudge_x = 0.1,
+                      direction = "both", hjust = 0, size = 6) +
+      scale_x_discrete(expand = expansion(add = c(0.15, 1.5))) +
       scale_y_reverse() +
       labs(x = NULL, y = y_label, title = mapping_centrality[[name]]) +
       theme_lmu() +
       theme(panel.grid.major.x = element_blank(),
             panel.grid.major.y = element_blank(),
             axis.text.y = element_blank(),
-            plot.title = element_text(face = "plain", hjust = 0.5, size = 12))
+            axis.title.y = element_text(size = 20),
+            axis.text.x = element_text(hjust = 0, size = 20),
+            plot.title = element_text(face = "plain", hjust = 0.5, size = 20))
   }
 
   # Assemble the plots to one combined one
@@ -810,32 +814,26 @@ build_relatedness_plot <- function(dt_nodes, dt_edges, seed = 20260916, labels =
   set.seed(seed)
   plot_relatedness <-
     ggraph(graph_relatedness, layout = "fr") +
-    geom_edge_link(aes(linetype = mutual), color = "grey85", alpha = 0.75) +
+    geom_edge_link(aes(linetype = mutual), color = lmu_default_color(), alpha = 0.4) +
     geom_node_point(aes(size = n_connections, color = community)) +
     scale_edge_linetype_manual(values = c("TRUE" = "solid", "FALSE" = "dotted"),
-                               labels = c("TRUE" = "Beidseitig", "FALSE" = "Einseitig"),
-                               name = "Gegenseitigkeit der Präferenz",
-                               guide = guide_legend(
-                                 position = "top",
-                                 override.aes = list(edge_color = lmu_default_color(),
-                                                     edge_alpha = 1))) +
+                               guide = "none") +
     scale_community +
-    scale_size_continuous(range = c(1, 5), name = "Summe der Grade (je Land)",
-                          guide = guide_legend(position = "bottom")) +
+    scale_size_continuous(range = c(1, 5), guide = "none") +
     theme_void() +
-    theme(legend.title = element_text(vjust = 0.6),
-          plot.background = element_rect(fill = lmu_colors$white, color = NA),
+    theme(plot.background = element_rect(fill = lmu_colors$white, color = NA),
           panel.background = element_rect(fill = lmu_colors$white, color = NA))
 
   # Add German node labels if provided
   if(is.null(labels) == TRUE) {
     plot_relatedness <- plot_relatedness +
-      geom_node_text(aes(label = name), repel = TRUE, size = 3,
-                     color = lmu_default_color(), segment.color = NA)
+      geom_node_text(aes(label = name), repel = TRUE, size = 4,
+                     color = lmu_default_color(), segment.color = NA, fontface = "plain")
   } else {
     plot_relatedness <- plot_relatedness +
       geom_node_text(aes(label = fifelse(name %in% names(labels), labels[name], name)),
-                     repel = TRUE, size = 3, color = lmu_default_color(), segment.color = NA)
+                     repel = TRUE, size = 4, color = lmu_default_color(), segment.color = NA,
+                     fontface = "plain")
   }
 
   # Return the final plot

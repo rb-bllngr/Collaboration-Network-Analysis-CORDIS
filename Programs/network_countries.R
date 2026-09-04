@@ -58,6 +58,15 @@ dt_country_summary <- merge(dt_country_summary, dt_population,
 print(dt_country_summary[order(programme, -n_organisations)][programme == "H2020"])
 print(dt_country_summary[order(programme, -n_organisations)][programme == "HORIZON"])
 
+# Inspect both aggregated coordinator share metrics by checking the ratio between both for
+# countries with substantial (at least 10 organisations) participation
+dt_country_summary[n_organisations > 10, .(
+  n_projects_over_organisations = sum(share_projects > share_organisations, na.rm = TRUE),
+  n_organisations_over_projects = sum(share_projects < share_organisations, na.rm = TRUE),
+  n_equal = sum(share_projects == share_organisations, na.rm = TRUE),
+  n_total = .N
+), by = programme]
+
 # Initialize lists for results
 results_edges <- list()
 results_density <- list()
@@ -203,6 +212,22 @@ dt_country_pairs <- rbindlist(results_edges)
 saveRDS(dt_country_pairs, file.path(PATHS$DATA_INT, "country_pairs.RDS"))
 dt_country_density <- rbindlist(results_density)
 
+# Within-country density summary
+dt_country_density[country_i == country_j, .(
+  minimum = min(density_observed, na.rm = TRUE),
+  average = mean(density_observed, na.rm = TRUE),
+  median = median(density_observed, na.rm = TRUE),
+  maximum = max(density_observed, na.rm = TRUE)
+), by = programme]
+
+# Five top cross-country collaboration preferences
+dt_country_density[country_i != country_j][order(programme, -collab_preference)][,
+  .SD[1:5], by = programme]
+
+# Five bottom cross-country collaboration preferences
+dt_country_density[country_i != country_j & collab_preference > 0][
+  order(programme, collab_preference)
+  ][, .SD[1:5], by = programme]
 
 # Diagnose the scope of the 'density_relative' NA problem:
 #     - NA layer No. 1: How many countries with only 1 organisation ('pairs_max == 0') are
@@ -244,6 +269,12 @@ dt_country_density[(is.nan(density_relative) == TRUE) | (is.infinite(density_rel
 dt_country_density[country_i == country_j, .(pct_na_diag = mean(is.na(collab_preference)) * 100),
                    by = programme]
 dt_country_density[country_i != country_j, .(pct_na_cross = mean(is.na(collab_preference)) * 100),
+                   by = programme]
+
+# Relative density redundant to collaboration preference?
+dt_country_density[country_i != country_j,
+                   cor(density_relative, collab_preference,
+                       method = "spearman", use = "complete.obs"),
                    by = programme]
 
 # Rank the most common country combinations once by collaborating organisation pairs and
@@ -320,34 +351,45 @@ dt_centrality_country[, centr_percapita := centr_sum / population]
 print(dt_centrality_country[order(programme, measure, -centr_sum)])
 
 # Visualize ranking of the top-n countries by size-normalized centrality measures
-top_ranks_n <- 20
+top_ranks_n <- 10
 for (prog in programmes) {
   plots_ranking <- list()
 
   for(name in names(centrality)) {
-  dt_ranking <- dt_centrality_country[(programme == prog) & (measure == name)][
-    order(-centr_mean)][1:min(top_ranks_n, .N)]
-  
-  plots_ranking[[name]] <-
-    ggplot(dt_ranking, aes(x = reorder(country, centr_mean), y = centr_mean, fill = isEU)) +
-    geom_col() +
-    coord_flip() +
-    scale_y_continuous(labels = scales::label_number(accuracy = 0.00001, drop0trailing = TRUE),
-                       n.breaks = 3) +
-    scale_fill_manual(values = colorblindfriendly(),
+    dt_ranking <- dt_centrality_country[(programme == prog) & (measure == name)][
+      order(-centr_mean)][1:min(top_ranks_n, .N)]
+    
+      plots_ranking[[name]] <-
+        ggplot(dt_ranking, aes(x = reorder(country, centr_mean), y = centr_mean, fill = isEU)) +
+        geom_col() +
+        coord_flip() +
+        scale_y_continuous(labels = scales::label_number(accuracy = 0.00001, drop0trailing = TRUE),
+                           n.breaks = 3) +
+        scale_fill_manual(values = eu_colors) +
+        labs(x = NULL, fill = NULL,
+             y = paste0("Mittlere normierte Zentralität je Organisation"),
+             title = mapping_centrality[[name]]) +
+        theme_lmu() +
+        theme(plot.title = element_text(face = "plain", hjust = 0.5, size = 16),
+              legend.position = "none")
+    }
+
+  # Dummy plot with sole purpose to render clean legend with both isEU levels guaranteed
+  plot_legend <- ggplot(data.table(isEU = c(FALSE, TRUE), x = 1, y = 1),
+                        aes(x = x, y = y, fill = isEU)) +
+    geom_col(width = 0) +  # invisible bars only triggering the legend
+    scale_fill_manual(values = eu_colors,
                       labels = c("Kein Mitglied der Europäischen Union",
                                  "Mitglied der Europäischen Union")) +
-    labs(x = NULL, fill = NULL,
-         y = paste0("Mittlere normierte Zentralität je Organisation"),
-         title = mapping_centrality[[name]]) +
-    theme_lmu() +
-    theme(plot.title = element_text(face = "plain", hjust = 0.5, size = 12))
-  }
+    labs(fill = NULL) + theme_void() +
+    theme(legend.position = "top", legend.text = element_text(size = 16))
 
   # Assemble programme-plot with all four centrality measures
-  plot_combined_ranks <- wrap_plots(plots_ranking, ncol = 4, guides = "collect", axis_titles = "collect") &
-    theme(legend.position = "bottom")
-  save_plot_lmu(plot_combined_ranks, paste0("countries_ranking_", tolower(prog), ".png"))
+  plot_combined_ranks <-
+    wrap_plots(plots_ranking, ncol = 4, axis_titles = "collect")
+  # Assemble full plot with legend
+  plot_final <- wrap_plots(plot_combined_ranks, plot_legend, ncol = 1, heights = c(1, 0.01))
+  save_plot_lmu(plot_final, paste0("countries_ranking_", tolower(prog), ".png"))
 }
 
 # Visualize the ranking evolution from H2020 to HORIZON, per measure (restricted to EU
@@ -366,7 +408,7 @@ plot_combined_evolution_mean <- build_ranking_evolution_plot(
   dt_rank_EU, ranked_by = "centr_mean", y_label = "Rang (nach mittlerer normierter Zentralität)"
 )
 save_plot_lmu(plot_combined_evolution_mean, "countries_ranking_evolution_mean.png",
-              width = 20, height = 8)
+              width = 20, height = 10)
 
 # Plot the same four centrality measure ranking evolution from H2020 to HORIZON, but for
 # summed not mean centrality
@@ -374,7 +416,7 @@ plot_combined_evolution_sum <- build_ranking_evolution_plot(
   dt_rank_EU, ranked_by = "centr_sum", y_label = "Rang (nach summierter normierter Zentralität)"
 )
 save_plot_lmu(plot_combined_evolution_sum, "countries_ranking_evolution_sum.png",
-              width = 20, height = 8)
+              width = 20, height = 10)
 
 # Plot the same four centrality measures ranking evolution from H2020 to HORIZON, but for
 # the population-normalised (per capita) centrality
@@ -383,26 +425,34 @@ plot_combined_evolution_percapita <- build_ranking_evolution_plot(
   y_label = "Rang (nach bevölkerungsnormierter Zentralität)"
 )
 save_plot_lmu(plot_combined_evolution_percapita, "countries_ranking_evolution_percapita.png",
-              width = 20, height = 8)
+              width = 20, height = 10)
 
 # Scatter plot of centrality share vs. organisation count/country size, looped over both
 # as the size measure
 size_variable <- c(n_organisations = "Anzahl an Organisationen [log10]",
                    population = "Landesbevölkerung [log10]")
 for (var in names(size_variable)) {
+  scale_x <- if(var == "population") {
+    scale_x_log10(breaks = scales::trans_breaks("log10", function(x) 10^x),
+                  labels = scales::trans_format("log10", scales::math_format(10^.x)))
+  } else {
+    scale_x_log10(labels = scales::label_number(drop0trailing = TRUE))
+  }
+
   plot_share_size <-
     ggplot(dt_centrality_country,
            aes(x = .data[[var]], y = centr_share * 100, color = isEU)) +
     geom_point(size = 2, alpha = 0.5) +
-    scale_x_log10(labels = scales::label_number(drop0trailing = TRUE)) +
-    scale_color_manual(values = colorblindfriendly(),
+    scale_x +
+    scale_color_manual(values = eu_colors,
                        labels = c("Kein Mitglied der Europäischen Union",
                                   "Mitglied der Europäischen Union")) +
     labs(x = size_variable[[var]], y = "Anteil an Gesamtzentralität [%]",
          color = NULL) +
     facet_grid(programme ~ measure, labeller = labeller(measure = mapping_centrality)) +
     theme_lmu() +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    guides(color = guide_legend(override.aes = list(alpha = 1, size = 3)))
 
   if (var == "n_organisations") {
     identifier <- "organisations"
@@ -479,7 +529,7 @@ for (prog in programmes) {
 
       plot_abstract <- plot_abstract +
         geom_node_text(aes(label = fifelse(name %in% names(labels_prog), labels_prog[name], name)),
-                       repel = TRUE, size = 3, color = lmu_default_color(), segment.color = NA)
+                       repel = TRUE, size = 4, color = lmu_default_color(), segment.color = NA)
     }
     save_plot_lmu(plot_abstract,
                   paste0("countries_map_abstract_", tolower(prog), "_", scope, ".png"))
@@ -487,7 +537,7 @@ for (prog in programmes) {
 }
 
 # Analyse the relatedness of the countries preference to collaborate with certain countries
-# more than others (following idea of European Commission, Balland and Ravet (2018))
+# more than others (following idea of GD RTD, Balland and Ravet (2018))
 for (prog in programmes) {
   # Prepare labeling for the plot
   labels_prog <- country_labels_EU_plus_associated[[prog]]

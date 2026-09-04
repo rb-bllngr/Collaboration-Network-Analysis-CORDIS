@@ -49,6 +49,7 @@ powerlaw_summary <- rbindlist(list(
              xmin = powerlawfit$HORIZON$xmin,
              KSstat = powerlawfit$HORIZON$KS.stat)
 ))
+print(powerlaw_summary)
 
 # Compute Hill estimator for each k (= number of order statistics used) from 1 to n - 1
 dt_hill_estimator <- rbindlist(lapply(networks, function(net) {
@@ -98,38 +99,44 @@ dt_summary <- dt_metrics[, .(
   deg_median = median(degree),
   deg_max = max(degree),
   deg_sd = sd(degree),
+  deg_mode = as.numeric(names(sort(table(degree[degree != 0]), decreasing = TRUE))[1]),
 
   str_mean = mean(strength),
   str_median = median(strength),
   str_max = max(strength),
-  str_sd = sd(strength)
+  str_sd = sd(strength),
+  str_mode = as.numeric(names(sort(table(strength[strength != 0]), decreasing = TRUE))[1])
 ), by = programme]
 print(dt_summary)
 
 # Histogram for degrees
 plot_degree_hist <-
-  ggplot(dt_metrics[degree != 0], aes(x = degree, fill = programme)) +
+  ggplot(dt_metrics[degree != 0], aes(x = degree, fill = programme, color = programme)) +
   geom_histogram(position = "identity", alpha = 0.75, binwidth = 0.1) +
   # Alternatively:
   # geom_histogram(aes(y = after_stat(density)), position = "identity", alpha = 0.75, binwidth = 0.1) +
   # geom_density(position = "identity", alpha = 0.75) +
   scale_x_log10() +
-  scale_fill_manual(values = colorblindfriendly()) +
-  labs(x = "Grad [log10]", y = "Anzahl Organisationen", fill = "EU-Förderprogramm") +
+  scale_fill_manual(values = programme_colors, guide = "none") +
+  scale_color_manual(values = programme_colors, guide = "none") +
+  labs(x = "Grad [log10]", y = "Anzahl Organisationen") +
+  facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top")
-save_plot_lmu(plot_degree_hist, "degree_histogram.png")
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
+save_plot_lmu(plot_degree_hist, "degree_degree_histogram.png")
 
 # Histogram for strength
 plot_strength_hist <-
-  ggplot(dt_metrics[strength != 0], aes(x = strength, fill = programme)) +
+  ggplot(dt_metrics[strength != 0], aes(x = strength, fill = programme, color = programme)) +
   geom_histogram(position = "identity", alpha = 0.75, binwidth = 0.1) +
   scale_x_log10() +
-  scale_fill_manual(values = colorblindfriendly()) +
-  labs(x = "Stärke [log10]", y = "Anzahl Organisationen", fill = "EU-Förderprogramm") +
+  scale_fill_manual(values = programme_colors, guide = "none") +
+  scale_color_manual(values = programme_colors, guide = "none") +
+  labs(x = "Stärke [log10]", y = "Anzahl Organisationen") +
+  facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top")
-save_plot_lmu(plot_strength_hist, "strength_histogram.png")
+  theme(panel.spacing.x = unit(1.5, "lines"), plot.margin = margin(r = 20, l = 20))
+save_plot_lmu(plot_strength_hist, "degree_strength_histogram.png")
 # Note: Looks basically identical to degree histogram. Validate plausibility by checking
 # whether the majority of organisations are one-off, i.e. most edge weights are close to 1
 # (meaning most pairs of organisations only collaborated on one project together) because
@@ -140,14 +147,14 @@ dt_metrics[, mean(strength / degree, na.rm = TRUE), by = programme]
 # Log-log degree distribution
 plot_degree_distrib <-
   ggplot(dt_degree_distrib, aes(x = degree, y = prob, color = programme)) +
-  geom_point(size = 1, alpha = 0.5) +
+  geom_point(size = 2, alpha = 0.5) +
   scale_x_log10() +
   scale_y_log10(labels = scales::label_number(drop0trailing = TRUE)) +
-  scale_color_manual(values = colorblindfriendly()) +
+  scale_color_manual(values = programme_colors) +
   labs(x = "Grad [log10]", y = "Relative Häufigkeit [log10]", color = "EU-Förderprogramm") +
   theme_lmu() +
-  theme(legend.position = "top") +
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 2)))
+  theme(legend.position = "top", plot.margin = margin(r = 20, l = 20)) +
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 3.5)))
 
 # Investigate low-degree fall-off from the log-log distribution expectation looking at the
 # role of project size and one-off participation:
@@ -192,17 +199,19 @@ print(dt_bin_summary[order(programme, bin)])
 # Scatter plot of mean consortium size vs. degree
 plot_consortium_degree <-
   ggplot(dt_degree[degree != 0], aes(x = degree, y = consortium_mean, color = onetime)) +
-  geom_point(size = 1, alpha = 0.15) +
+  geom_point(size = 2, alpha = 0.15) +
   scale_x_log10() +
   scale_y_log10() +
   scale_color_manual(values = colorblindfriendly(),
                      labels = c("Teilnahme an mehreren Projekten", "Teilnahme an einem Projekt")) +
   labs(color = NULL, x = "Grad [log10]",
-       y = "Mittlere Anzahl beteiligter Organisationen pro Projekt [log10]") +
+       y = "Mittlere Anzahl beteiligter\nOrganisationen pro Projekt [log10]") +
   facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top") +
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 2)))
+  theme(legend.position = "top",
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20)) +
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 3.5)))
 
 # Compute for each degree value the share of organisations that are one-time participants
 dt_crossover <- dt_degree[degree != 0, .(
@@ -232,26 +241,32 @@ save_plot_lmu(plot_consortium_degree, "degree_consortiumsize_lowdegree.png")
 
 # Investigate neighbour-degree behaviour among organisations by plotting knn-degree
 plot_degree_knn <-
-  ggplot(dt_metrics[!is.na(knn) & degree != 0], aes(x = degree, y = knn)) +
-  geom_point(size = 1, alpha = 0.1) +
+  ggplot(dt_metrics[!is.na(knn) & degree != 0], aes(x = degree, y = knn, color = programme)) +
+  geom_point(size = 2, alpha = 0.1) +
   scale_x_log10() +
   scale_y_log10() +
+  scale_color_manual(values = programme_colors, guide = "none") +
   labs(x = "Grad [log10]",
-       y = "Gewichteter mittlerer Grad der Nachbarn [log10]") +
+       y = "Gewichteter mittlerer Grad\nder Nachbarn [log10]") +
   facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top")
-save_plot_lmu(plot_degree_knn, "degree_knn.png", width = 12, height = 6)
+  theme(legend.position = "top",
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20))
+save_plot_lmu(plot_degree_knn, "degree_knn.png")
 
 # Hill plot
 plot_hill <-
-  ggplot(dt_hill_estimator, aes(x = k, y = alpha_k)) +
-  geom_point(size = 1, alpha = 0.5) +
+  ggplot(dt_hill_estimator, aes(x = k, y = alpha_k, color = programme)) +
+  geom_point(size = 2, alpha = 0.5) +
   labs(x = "k", y = expression(hat(alpha)[k])) +
   facet_wrap(~ programme) +
+  scale_color_manual(values = programme_colors, guide = "none") +
   theme_lmu() +
-  theme(legend.position = "top")
-save_plot_lmu(plot_hill, "degree_powerlaw_hill.png", width = 12, height = 6)
+  theme(legend.position = "top",
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20))
+save_plot_lmu(plot_hill, "degree_powerlaw_hill.png")
 
 # Degree correlation matrix as image representation of logarithmically-transformed joint
 # degree distribution (c. Kolaczyk (2010), Fig. 4.3)
@@ -272,7 +287,10 @@ plot_joint_degree_distrib <-
         panel.grid.major.y = element_blank(),
         legend.position = "bottom",
         legend.direction = "horizontal", 
-        legend.title = element_text(vjust = 0.8))
+        legend.title = element_text(vjust = 1.1, margin = margin(r = 10)),
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20)) +
+  guides(color = guide_colorbar(barwidth = unit(8, "cm"), barheight = unit(0.5, "cm")))
 save_plot_lmu(plot_joint_degree_distrib, "degree_correlation_matrix.png")
 
 # Perform some cross-programme distributional comparisons using statistical tests and more:

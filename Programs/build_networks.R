@@ -1,5 +1,5 @@
-# build_network.R: Construct one-mode (organisation x organisation) undirected collaboration
-#                  network from CORDIS for full data and individual programmes.
+# build_networks.R: Construct one-mode (organisation x organisation) undirected collaboration
+#                   network from CORDIS for full data and individual programmes.
 
 # Load the data sets and filter for programmes
 cordis <- readRDS(file.path(PATHS$DATA_INT, "cordis_population.RDS"))
@@ -68,7 +68,6 @@ for(name in names(networks)) {
 # Sanity checks for CORDIS network
 graph_weighted <- networks[["cordis"]]$weighted
 graph_unweighted <- networks[["cordis"]]$unweighted
-message("\n --- Sanity checks ---")
 message("Nodes: ", vcount(graph_weighted))
 message("Edges: ", ecount(graph_weighted))
 message("Weighted graph is weighted: ", is_weighted(graph_weighted))

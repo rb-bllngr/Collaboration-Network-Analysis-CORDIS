@@ -71,6 +71,14 @@ message("All files downloaded and extracted.")
 projects_list <- lapply(names(programme_directories), function(prog) {
   load_xlsx(subdirectory = programme_directories[[prog]], filename = "project.xlsx")
 })
+names(projects_list) <- c("H2020", "HORIZON")
+
+# Report number of projects per programme before merging
+n_projects_per_programme <- sapply(projects_list, nrow)
+message("Projects per programme: ",
+        paste(names(n_projects_per_programme), n_projects_per_programme,
+              sep = " = ", collapse = ", "))
+
 projects <- rbindlist(projects_list, use.names = TRUE, fill = TRUE)
 message("Projects loaded: ", nrow(projects), " rows across both programs")
 
@@ -78,6 +86,25 @@ message("Projects loaded: ", nrow(projects), " rows across both programs")
 organisations_list <- lapply(names(programme_directories), function(prog) {
   load_xlsx(subdirectory = programme_directories[[prog]], filename = "organization.xlsx")
 })
+names(organisations_list) <- c("H2020", "HORIZON")
+
+# Report number of unique organisations per programme before merging
+n_organisations_per_programme <- sapply(organisations_list,
+                                        function(dt) uniqueN(dt$organisationID))
+message("Unique organisations per programme: ",
+        paste(names(n_organisations_per_programme), n_organisations_per_programme,
+              sep = " = ", collapse = ", "))
+
+# Report overlap of how many organisations in appear in both programmes
+n_overlap <- length(intersect(unique(organisations_list[["H2020"]]$organisationID),
+                              unique(organisations_list[["HORIZON"]]$organisationID)))
+message("Organisations appearing in both programmes: ", n_overlap, " (",
+        round(n_overlap /
+                length(unique(organisations_list[["HORIZON"]]$organisationID)) * 100, 2),
+              " % of HORIZON organisations)")
+# Note: rough early-stage overview count on uncleaned organisationIDs, not directly
+#       comparable with giant-component-based persistence analysis done in 'network_roles.R'
+
 organisations <- rbindlist(organisations_list, use.names = TRUE, fill = TRUE)
 message("Organisations loaded: ", nrow(organisations), " rows across both programs")
 
