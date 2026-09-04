@@ -105,8 +105,8 @@ dt_mds[, country_name := mapply(function(country, prog) {
 # Visualise the MDS data, faceted by programme in direct comparison to geographic version
 plot_mds <-
   ggplot(dt_mds, aes(x = dim1, y = dim2, color = isEU)) +
-  geom_point(size = 3, alpha = 0.5) +
-  geom_text_repel(aes(label = country_name), size = 3, color = lmu_default_color(),
+  geom_point(size = 4, alpha = 0.5) +
+  geom_text_repel(aes(label = country_name), size = 5, color = lmu_default_color(),
                   segment.color = NA, max.overlaps = 10) +
   scale_color_manual(values = colorblindfriendly(),
                      labels = c("Kein Mitglied der Europäischen Union",
@@ -114,7 +114,9 @@ plot_mds <-
   labs(x = "Dimension 1", y = "Dimension 2", color = NULL) +
   facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top") +
+  theme(legend.position = "bottom",
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20)) +
   guides(color = guide_legend(override.aes = list(alpha = 1)))
 save_plot_lmu(plot_mds, "mds_inverse_weight.png")
 
@@ -134,8 +136,8 @@ dt_mds_zoomed <- dt_mds[(abs(dim1) <= dt_zoom$xlim) & (abs(dim2) <= dt_zoom$ylim
 # Build zoomed in plot to highlight the overlapping part of first MDS visualisation
 plot_mds_zoomed <-
   ggplot(dt_mds_zoomed, aes(x = dim1, y = dim2, color = isEU)) +
-  geom_point(size = 3, alpha = 0.5) +
-  geom_text_repel(aes(label = country_name), size = 3, color = lmu_default_color(),
+  geom_point(size = 4, alpha = 0.5) +
+  geom_text_repel(aes(label = country_name), size = 5, color = lmu_default_color(),
                   segment.color = NA, max.overlaps = 10) +
   scale_color_manual(values = colorblindfriendly(),
                      labels = c("Kein Mitglied der Europäischen Union",
@@ -145,6 +147,8 @@ plot_mds_zoomed <-
   labs(x = "Dimension 1", y = "Dimension 2", color = NULL) +
   facet_wrap(~ programme) +
   theme_lmu() +
-  theme(legend.position = "top") +
+  theme(legend.position = "bottom",
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20)) +
   guides(color = guide_legend(override.aes = list(alpha = 1)))
 save_plot_lmu(plot_mds_zoomed, "mds_inverse_weight_zoomed.png")

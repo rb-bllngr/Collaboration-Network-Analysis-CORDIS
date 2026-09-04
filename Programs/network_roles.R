@@ -56,23 +56,44 @@ dt_roles_long <- melt(
 dt_roles_long[, measure := factor(centrality_names[column_temp], levels = order_centrality)]
 dt_roles_long[, column_temp := NULL]
 
-# Scatter plots of each centrality measure vs. coordinator counts, programme-specific 
+# Scatter plots of each centrality measure vs. coordinator counts, programme-specific
+sigma_between <- min(dt_roles_long$value[dt_roles_long$value > 0], na.rm = TRUE)
+y_scales_per_measure <- list(
+  # Degree
+  scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))),
+  # Betweenness
+  scale_y_continuous(transform = scales::pseudo_log_trans(sigma = sigma_between, base = 10),
+                     breaks = c(1e-9, 1e-7, 1e-5, 1e-3),
+                     labels = scales::trans_format("log10", scales::math_format(10^.x))),
+  # Closeness
+  scale_y_log10(),
+  # Eigenvector
+  scale_y_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))
+)
 plot_coordinator_centrality <-
-  ggplot(dt_roles_long, aes(x = n_coordinator, y = value)) +
-  geom_point(size = 0.5, alpha = 0.2) +
+  ggplot(dt_roles_long[!(measure == "degree" & value == 0)],
+         aes(x = n_coordinator, y = value, color = programme)) +
+  geom_point(size = 0.5, alpha = 0.25) +
   scale_x_continuous(transform = scales::pseudo_log_trans(base = 10),
                      breaks = c(0, 1, 10, 100, 1000)) +
-  scale_y_continuous(labels = scales::label_number(accuracy = 0.01)) +
-  labs(x = "Anzahl Projekte, die Organisation in Koordinatorrolle [pseudo-log10]",
+  scale_color_manual(values = programme_colors, guide = "none") +
+  labs(x = "Anzahl Projekte, die Organisation\nin Koordinatorrolle [pseudo-log10]",
        y = "Normierte Zentralität") +
   facet_grid(measure ~ programme, scales = "free_y",
-             labeller = labeller(measure = mapping_centrality)) +
-  theme_lmu()
+             labeller = labeller(measure = mapping_centrality_scaled_stacked)) +
+  facetted_pos_scales(y = y_scales_per_measure) +
+  theme_lmu() +
+  theme(panel.spacing.y = unit(1.0, "lines"),
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20),
+        strip.text.y = element_text(margin = margin(l = 10)),
+        axis.text.y.left = element_text(margin = margin(r = 10)),
+        strip.clip = "off")
 save_plot_lmu(plot_coordinator_centrality, "roles_centrality_coordinator.png",
-              width = 8, height = 8)
+              height = 8, width = 8)
 
 # Spearman correlation between coordination share/coordinator role count and each centrality
-# measure, programme-specific; answers question: does more coordination relate to higher centrality?
+# measure, programme-specific; answers: does more coordination relate to higher centrality?
 dt_roles_corr <- rbindlist(lapply(programmes, function(prog) {
     # Reduce data set to giant component subset within each programme (analogous to same
     # behaviour for the centrality correlation comparison in 'network_centrality.R')
@@ -123,7 +144,7 @@ dt_wilcoxon <- rbindlist(lapply(programmes, function(prog) {
 }))
 print(dt_wilcoxon)
 # Note: Apparent p-values of (almost) zero would imply extreme significance but important
-# to state large, non-independent n could work in exact connection to network autocorrelation!
+# to state large, non-independent n works in exact connection to network autocorrelation!
 
 # Compute percentile ranks [0, 1] per programme for each centrality measure. Restrict the
 # computation on the giant component for all four measures due to comparability reasons.
@@ -172,7 +193,7 @@ dt_persistence[, ":=" (
 
 # Convert status categories into factors for faceting
 dt_persistence[, ":=" (
-  category_h2020 = factor(category_h2020, levels = c("Nicht vorhanden", "Teilnehmer", "Koordinator")),
+  category_h2020 = factor(category_h2020, levels = c("Koordinator", "Teilnehmer", "Nicht vorhanden")),
   category_horizon = factor(category_horizon, levels = c("Nicht vorhanden", "Teilnehmer", "Koordinator"))
 )]
 
@@ -191,9 +212,10 @@ dt_persistence[, persistence := fcase(
   default = "Kein Koordinator"
 )]
 dt_persistence[,
-  persistence := factor(persistence,
-                        levels = c("Kein Koordinator", "Koordinator in H2020",
-                                   "Koordinator in HORIZON", "Koordinator in H2020 und HORIZON"))
+  persistence := factor(persistence, levels = c("Kein Koordinator",
+                                                "Koordinator in H2020",
+                                                "Koordinator in HORIZON",
+                                                "Koordinator in H2020 und HORIZON"))
 ]
 
 # Summary of persistence information as contingency table
@@ -205,7 +227,8 @@ print(dt_persistence_summary[order(category_h2020, category_horizon)])
 
 # Determine change in degree centrality from H2020 to HORIZON for participating organisations
 dt_persistence[,
-               degree_change := fifelse(is.na(is_coordinator_h2020) == FALSE & is.na(is_coordinator_horizon) == FALSE,
+               degree_change := fifelse(is.na(is_coordinator_h2020) == FALSE &
+                                          is.na(is_coordinator_horizon) == FALSE,
                                         degree_horizon - degree_h2020, NA_real_)
 ]
 
@@ -259,16 +282,16 @@ symlog_breaks <- fifelse(degree_change_breaks == 0, yes = 0,
 # Quadrant (3 x 3) plot of jittered scatters. Color symbolises the change in degree
 # centrality from H2020 to HORIZON (no coloring if not present in one of the programmes)
 plot_persistence_quadrant_jittered <-
-  ggplot(dt_persistence, aes(x = jitter_h2020, y = jitter_horizon,
+  ggplot(dt_persistence, aes(x = jitter_horizon, y = jitter_h2020,
                              fill = degree_change_symlog,
                              alpha = (category_h2020 != "Nicht vorhanden") &
                                (category_horizon != "Nicht vorhanden"))) +
   geom_point(shape = 21, color = lmu_default_color(), size = 1, stroke = 0.15) +
   geom_vline(xintercept = c(1.5, 2.5), linetype = "solid", color = lmu_default_color()) +
   geom_hline(yintercept = c(1.5, 2.5), linetype = "solid", color = lmu_default_color()) +
-  scale_x_continuous(breaks = 1:3, labels = levels(dt_persistence$category_h2020),
-                     limits = c(0.5, 3.5), expand = c(0, 0)) +
-  scale_y_continuous(breaks = 1:3, labels = levels(dt_persistence$category_horizon),
+  scale_x_continuous(breaks = 1:3, labels = levels(dt_persistence$category_horizon),
+                     limits = c(0.5, 3.5), expand = c(0, 0), position = "top") +
+  scale_y_continuous(breaks = 1:3, labels = levels(dt_persistence$category_h2020),
                      limits = c(0.5, 3.5), expand = c(0, 0)) +
   scale_fill_gradientn(colors = RColorBrewer::brewer.pal(11, "RdBu"),
                        limits = c(-symlog_limit, symlog_limit),
@@ -276,11 +299,17 @@ plot_persistence_quadrant_jittered <-
                        labels = degree_change_breaks,
                        na.value = lmu_default_color()) +
   scale_alpha_manual(values = c(`TRUE` = 0.8, `FALSE` = 0.1), guide = "none") +
-  labs(x = "H2020", y = "HORIZON",
-       fill = "Änderung in\nGradzentralität\n[sym-log10\n+ lineare Null]") +
+  labs(x = "HORIZON", y = "H2020",
+       fill = expression(paste(Delta, " Gradzentralität [sym-log10, lineare Null]"))) +
   theme_lmu() +
-  theme(legend.title = element_text(hjust = 0.5))
-save_plot_lmu(plot_persistence_quadrant_jittered, "roles_persistence_jittered.png")
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        axis.text.x.top = element_text(margin = margin(t = 10)),
+        plot.margin = margin(r = 20, l = 20)) +
+  guides(fill = guide_colorbar(title.position = "top", title.hjust = 0.5,
+                               barwidth = unit(11, "cm"), barheight = unit(0.5, "cm")))
+save_plot_lmu(plot_persistence_quadrant_jittered, "roles_persistence_jittered.png",
+              height = 7, width = 8)
 
 # Variant No. 2: Place scatter points for quadrant plot using ranking-based written function
 dt_persistence[, ":=" (
@@ -359,30 +388,51 @@ dt_intersect_long_rank[, measure := factor(names(centrality)[as.integer(measure_
 dt_intersect_long_rank[, measure_index := NULL]
 
 # Scatter plot of HORIZON vs. H2020 normalised centrality values, faceted by measure
+x_scales_per_measure <- list(
+  # Degree
+  scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x))),
+  # Betweenness
+  scale_x_continuous(transform = scales::pseudo_log_trans(sigma = sigma_between, base = 10),
+                     breaks = c(1e-9, 1e-7, 1e-5, 1e-3),
+                     labels = scales::trans_format("log10", scales::math_format(10^.x))),
+  # Closeness
+  scale_x_log10(),
+  # Eigenvector
+  scale_x_log10(labels = scales::trans_format("log10", scales::math_format(10^.x)))
+)
 plot_persistence_centrality <-
   ggplot(dt_intersect_long_value, aes(x = value_h2020, y = value_horizon, color = persistence)) +
   geom_point(size = 0.5, alpha = 0.3) +
   geom_abline(slope = 1, intercept = 0, linetype = "twodash", color = "grey85") +
   scale_color_manual(values = c("#000000", colorblindfriendly())) +
   labs(x = "Normierte Zentralität in H2020", y = "Normierte Zentralität in HORIZON", color = NULL) +
-  facet_wrap(~ measure, scales = "free", labeller = labeller(measure = mapping_centrality)) +
+  facet_wrap(~ measure, scales = "free",
+             labeller = labeller(measure = mapping_centrality_scaled)) +
+  facetted_pos_scales(x = x_scales_per_measure, y = y_scales_per_measure) +
   theme_lmu() +
-  theme(legend.position = "top") +
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 2)))
-save_plot_lmu(plot_persistence_centrality, "roles_persistence_centrality.png")
+  theme(legend.position = "top",
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20)) +
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 3), nrow = 2))
+save_plot_lmu(plot_persistence_centrality, "roles_persistence_centrality.png", height = 7)
 
 # Scatter plot of HORIZON vs. H2020 centrality percentile ranks, faceted by measure
 plot_persistence_centrality_ranks <-
   ggplot(dt_intersect_long_rank, aes(x = rank_h2020, y = rank_horizon, color = persistence)) +
   geom_point(size = 0.5, alpha = 0.3) +
   geom_abline(slope = 1, intercept = 0, linetype = "twodash", color = "grey85") +
+  scale_x_continuous(breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) +
+  scale_y_continuous(breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) +
   scale_color_manual(values = c("#000000", colorblindfriendly())) +
   labs(x = "Perzentil H2020", y = "Perzentil HORIZON", color = NULL) +
   facet_wrap(~ measure, scales = "free", labeller = labeller(measure = mapping_centrality)) +
   theme_lmu() +
-  theme(legend.position = "top") +
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 2)))
-save_plot_lmu(plot_persistence_centrality_ranks, "roles_persistence_centrality_ranks.png")
+  theme(legend.position = "top",
+        panel.spacing.x = unit(1.5, "lines"),
+        plot.margin = margin(r = 20, l = 20)) +
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 3), nrow = 2))
+save_plot_lmu(plot_persistence_centrality_ranks, "roles_persistence_centrality_ranks.png",
+              height = 7)
 
 # Save one individual value plot per centrality measure, each faceted by persistence category
 for (name in names(centrality)) {
@@ -394,7 +444,11 @@ for (name in names(centrality)) {
     geom_point(size = 0.5, alpha = 0.5) +
     geom_abline(slope = 1, intercept = 0, linetype = "twodash", color = "grey85") +
     facet_wrap(~ persistence) +
-    theme_lmu()
+    theme_lmu() +
+    theme(panel.spacing.x = unit(1.5, "lines"),
+          plot.margin = margin(r = 20, l = 20),
+          strip.text = element_text(size = 16.5))
+    
 
   if (name == "betweenness") {
     # Calculate smallest value for normalised betweenness centrality to be sigma threshold
@@ -404,7 +458,7 @@ for (name in names(centrality)) {
       dt_intersect_long_value[(measure == name) & (value_h2020 > 0), value_h2020],
       dt_intersect_long_value[(measure == name) & (value_horizon > 0), value_horizon]
     )
-    betweenness_breaks <- c(1e-10, 1e-8, 1e-6, 1e-4, 1e-2)
+    betweenness_breaks <- c(1e-9, 1e-7, 1e-5, 1e-3)
     
 
     # Add specific scaling to plot
@@ -418,14 +472,14 @@ for (name in names(centrality)) {
                          breaks = betweenness_breaks,
                          labels = scales::trans_format("log10", scales::math_format(10^.x)),
                          name = paste0("Normierte ", mapping_centrality[[name]],
-                                       "-Zentralität in HORIZON [pseudo-log10]"))
+                                       "-Zentralität\nin HORIZON [pseudo-log10]"))
   } else {
     plot_single_measure <- plot_single_measure +
       scale_x_log10(name = paste0("Normierte ", mapping_centrality[[name]],
                                   "-Zentralität in H2020 [log10]"),
                     labels = scales::label_number(drop0trailing = TRUE)) +
       scale_y_log10(name = paste0("Normierte ", mapping_centrality[[name]],
-                                  "-Zentralität in HORIZON [log10]"),
+                                  "-Zentralität\nin HORIZON [log10]"),
                     labels = scales::label_number(drop0trailing = TRUE))
   }
 
