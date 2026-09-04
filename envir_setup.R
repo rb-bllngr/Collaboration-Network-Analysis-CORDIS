@@ -61,7 +61,9 @@ packages <- c(
   # Install package for converting country names to codes and vice versa
   "countrycode",
   # Install package for relatedness computation
-  "EconGeo"
+  "EconGeo",
+  # Install package for deviating scales on plot facets
+  "ggh4x"
 )
 
 # Set CRAN mirror
