@@ -1,0 +1,89 @@
+---
+title: "Strukturanalyse und Visualisierung<br>von Kollaborationsnetzwerken in<br>EU-Forschungsförderprogrammen"
+subtitle: "P17 Abschlussmodul (Bachelorarbeit + Disputation)"
+author:
+    name: "Robin Billinger"
+    affiliation: "Institut für Statistik<br>Ludwig-Maximilians-Universität München"
+institute: "Betreuer: Prof. Dr. Göran Kauermann"
+lang: "de"
+date: "22. September 2026"
+date-format: "long"
+
+format:
+  revealjs:
+    css: "customstyle.css"
+    embed-resources: true
+    self-contained: true
+    slide-number: c
+    logo: "LMU.svg"
+    footer: >
+      <div style="display: flex; justify-content: space-between; width: 80%;
+        margin-left: 10%; margin-right: 10%;">
+      <span style="text-align: left;">Bachelorarbeit</span>
+      <span style="text-align: center;"
+      >Robin Billinger </span>
+      <span style="text-align: right;">22.09.2026</span>
+      </div>
+    bibliography: references.bib
+  # csl: apa.csl
+    nocite: "@*"
+crossref:
+  fig-title: "Abbildung"
+editor: source
+---
+
+```{r setup, include=FALSE}
+# Source the environment setup to install necessary packages and load libraries
+packages <- c("knitr")
+
+for (pkg in packages) {
+  if (!suppressWarnings(require(pkg, character.only = TRUE))) {
+    install.packages(pkg, dependencies = TRUE)
+    library(pkg, character.only = TRUE)
+  }
+}
+
+# Globally set settings and center all plots while displaying knitted version in HTML
+knitr::opts_chunk$set(echo = FALSE, fig.align = "center")
+```
+
+## Agenda {.custom-smaller}
+
+1.  Hintergrund zu den Framework Programmes
+
+2.  Daten
+
+3.  Methodik
+
+3.  Ergebnisse
+
+4.  Zusammenfassung der Erkenntnisse
+
+## 
+
+::: {.center-text}
+**1. Hintergrund zu den Framework Programmes**
+:::
+
+## Hintergrund zu den Framework Programmes {.custom-smaller}
+
+-   zu deutsch: Rahmenprogramme für Forschung und Innovation
+
+-   von 1983 bis 2019 insgesamt sieben Rahmenprogramme (FP1 bis FP7)
+
+
+
+
+
+## TITEL {.custom-smaller}
+
+```{r fig-NAME, echo=FALSE, out.width="100%", fig.cap="CAPTION"}
+knitr::include_graphics("Plots/countries_ranking_evolution_sum.png")
+```
+
+## 
+
+## Literaturverzeichnis {.custom-smaller .scrollable}
+
+::: {#refs}
+:::

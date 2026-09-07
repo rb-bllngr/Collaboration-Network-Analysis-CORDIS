@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+
+.reveal {
+  font-family: 'Roboto', sans-serif;
+}
+
+.reveal h1, .reveal h2, .reveal h3 {
+  font-family: 'Roboto', sans-serif;
+}
+
+.reveal .title {
+  font-size: 1.2em;
+}
+
+.reveal .date,
+.reveal .subtitle {
+  font-size: 0.8em;
+}
+
+body {
+  text-align: justify;
+}
+
+.reveal .slide-number {
+  bottom: 12px !important;
+  right: 8px !important;
+  top: unset !important;
+}
+
+.reveal .slide-logo {
+  height: 100px !important;
+  width: 100px!important;
+  max-width: unset !important;
+  max-height: unset !important;
+  top: 0px !important;
+  right: 50px !important;
+}
+
+.reveal .footer {
+  font-size: 0.4em !important;
+  text-align: justify !important;
+  display: block;
+}
+
+.reveal figcaption,
+.reveal p.caption {
+  text-align: center !important;
+}
+
+.custom-smaller {
+    font-size: 0.75em;
+}
+
+/* Center the whole table */
+.reveal table {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Justify cell text */
+.reveal table td,
+.reveal table th {
+  text-align: center;
+}
+
+.center-text {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 1.8em;
+    height: 80vh;
+    width: 100%;
+    margin: 0 auto;
+}

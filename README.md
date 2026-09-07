@@ -29,6 +29,8 @@ Repository Root
 │── Bachelorthesis.pdf               # Finale Abschlussarbeit
 │── Disputation.qmd                  # Endpräsentation zur Disputation
 │── customstyle.css                  # Stilvorlagen
+│── LMU.svg                          # Logo Ludwig-Maximilians-Universität München für .qmd-Datei
+│── references.bib                   # Quellenverweise der Arbeit
 │
 │── envir_setup.R                    # Globale Einstellungen und Vorbereitung der Arbeitsumgebung
 │── functions.R                      # Verfasste und zur Wiederverwendung ausgelagerte Funktionen
