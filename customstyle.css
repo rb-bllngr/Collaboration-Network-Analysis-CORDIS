@@ -1,5 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
 
+/* Set coloring scheme for whole presentation */
+.lmu-green {color: #00883A}
+.lmu-black {color: #232323}
+.lmu-white {color: #FFFFFF}
+.lmu-blue {color: #0F1987}
+.lmu-cyan {color: #009FE3}
+.lmu-violet {color: #8C4091}
+.lmu-red {color: #D71919}
+.lmu-orange {color: #F18700}
+
+/* Set layout and settings for slide appearance */
 .reveal {
   font-family: 'Roboto', sans-serif;
 }
@@ -13,12 +24,10 @@
 }
 
 .reveal .date,
-.reveal .subtitle {
-  font-size: 0.8em;
-}
-
-body {
-  text-align: justify;
+.reveal .subtitle,
+.reveal .affiliation,
+.reveal .institute {
+  font-size: 0.7em;
 }
 
 .reveal .slide-number {
@@ -47,8 +56,8 @@ body {
   text-align: center !important;
 }
 
-.custom-smaller {
-    font-size: 0.75em;
+.custom-smaller{
+  font-size: 0.75em;
 }
 
 /* Center the whole table */
@@ -63,7 +72,7 @@ body {
   text-align: center;
 }
 
-.center-text {
+.center-slide {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -73,3 +82,21 @@ body {
     width: 100%;
     margin: 0 auto;
 }
+
+.center-text {
+  text-align: center;
+}
+
+/* Bibliography slide */
+.reveal #refs,
+.reveal #refs .csl-entry {
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.04em !important;
+  text-align: justify;
+  hyphens: auto;
+}
+
+ .refs-slide h2 {
+  font-size: 1.75em !important;
+}
+
