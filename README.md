@@ -27,10 +27,11 @@ sobald die Programme auf die genutzten Daten ausgeführt werden.
 Repository Root
 │── README.md                        # Projektübersicht und Reproduzierbarkeit
 │── Bachelorthesis.pdf               # Finale Abschlussarbeit
-│── Disputation.qmd                  # Endpräsentation zur Disputation
+│── Disputation.qmd                  # Endpräsentation zur Verteidigung der Bachelorthesis
 │── customstyle.css                  # Stilvorlagen
-│── LMU.svg                          # Logo Ludwig-Maximilians-Universität München für .qmd-Datei
+│── LMU.svg                          # Logo Ludwig-Maximilians-Universität München für Disputation
 │── references.bib                   # Quellenverweise der Arbeit
+├── chicago-authot-date-de.csl       # Stilvorlage für Literaturverzeichnis der Disputation
 │
 │── envir_setup.R                    # Globale Einstellungen und Vorbereitung der Arbeitsumgebung
 │── functions.R                      # Verfasste und zur Wiederverwendung ausgelagerte Funktionen
@@ -54,6 +55,7 @@ Repository Root
 │   ├── network_mds.R
 │   └── mds_feasibility_check.R
 │
+├── Images/                          # Externe Abbildungen für Disputation
 └── Plots/                           # Finale Abbildungen für Thesis/Disputation aus den Daten
 ```
 
