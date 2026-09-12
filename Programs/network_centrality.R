@@ -85,7 +85,7 @@ for (prog in programmes) {
   # component around zero centrality (even though they might be structurally important only
   # due to drive by dominant eigenvalue); for unweighted and weighted (i.e. project counts
   # of co-participation) version.
-  message("--- Computing eigenvector centrality ...")
+  message("--- Eigenvector centrality ...")
   giant_comp_eigenv_weighted <- eigen_centrality(giant_comp_weighted,
                                                  weights = E(giant_comp_weighted)$weight)$vector
   giant_comp_eigenv_unweighted <- eigen_centrality(giant_comp_unweighted,
