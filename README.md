@@ -94,7 +94,9 @@ Im Laufe der Arbeit kommt es zudem an mehreren Stellen (genauer gesagt in `netwo
 
 - Um eine neuerliche Berechnung zu erzwingen, müssen entweder
 
-  A)  diejenigen Dateien, die neu berechnet werden sollen, aus den entsprechenden Ordnern gelöscht werden, oder
+  A)  diejenigen Dateien, die neu berechnet werden sollen, aus den entsprechenden Ordnern gelöscht werden,
+
+  oder
 
   B)  die zugehörigen Schaltervariablen in den Programmen umgelegt werden, das heißt, der in beiden Programmen zu Beginn standardmäßig auf
   ```r
