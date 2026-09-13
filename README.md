@@ -138,4 +138,9 @@ tidygraph      1.3.1
 wpp2024        1.1-3
 ```
 
-## KI- und Softwareunterstützung
+## KI-Hilfsmittel
+Ich erkläre hiermit ehrenwörtlich, dass alle Teile der vorliegenden Arbeit selbst geschrieben wurden. Zusätzlich wurde Anthropic Claude Sonnet 4 bzw. 5 (mit Web Search) für die folgenden Aufgabenbereiche zur Hand gezogen:
+- zur Orientierung bei der Literaturrecherche, um relevante Quellenstränge vorzuschlagen, auf deren Basis die zugehörige Primärliteratur eigenständig recherchiert und konsultiert wurde,
+- um sprachliche und stilistische Korrekturen zu verfassten Textausschnitten zu generieren, aus denen gegebenenfalls einzelne Vorschläge nach manueller und kritischer Überprüfung übernommen wurden,
+- zur Unterstützung beim Programmieren, insbesondere für das Debugging und Fehlerkorrekturen der R-Skripte zur Analyse der Netzwerke sowie zur Plausibilitätsprüfung, ob geschriebene Code-Snippets die gewünschte, in natürlicher Sprache beschriebene Funktion erfüllen,
+- für Formatierungshilfen im Umgang mit LaTeX und zur Validierung von BibTeX-Referenzen.
