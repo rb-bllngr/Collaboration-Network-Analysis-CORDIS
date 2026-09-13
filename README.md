@@ -6,7 +6,7 @@
 
 - Student: Robin Billinger
 - Betreuer: Prof. Dr. Göran Kauermann
-- Abgabedatum: 16. September 2026 (Sommersemester 2026)
+- Abgabedatum: 15. September 2026 (Sommersemester 2026)
 
 ## Kurzbeschreibung
 
