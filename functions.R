@@ -13,7 +13,7 @@
 #' 10. build_country_plot_abstract
 #' 11. build_ranking_evolution_plot
 #' 12. compute_relatedness
-#' 13. find_relatedness_top_k
+#' 13. relatedness_top_k_edges
 #' 14. build_relatedness_plot
 
 # --- Function 1 -------------------------------------------------------------------------
@@ -681,30 +681,24 @@ compute_relatedness <- function(dt_country_project, method = "prob") {
 
 # --- Function 13 ------------------------------------------------------------------------
 #' @description
-#' Determines each country's top k preferred connections by relatedness measure, starting
-#' at k_start and increasing k until no isolated countries remain.
+#' Determines each country's top k preferred connections by relatedness measure. Follows
+#' the fixed k = 4 convention established in GD RTD, Balland and Ravet (2018).
 #'
 #' Inputs:
 #' @param dt_relatedness data.table. Must contain columns country_i, country_j, and
 #'                       relatedness. Matches the output of 'compute_relatedness()'.
-#' @param k_start Integer. Default is 4; starting number of top connections kept per country.
-#' @param k_max Integer. Default is 10; safety net to avoid infinite loop.
+#' @param k Integer. Default is 4; number of top connections kept per country.
 #'
 #' Output:
-#' @returns A data.table of retained edges: country_i, country_j, relatedness, k_used, and
-#' mutual.
-find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
+#' @returns A data.table of retained edges: country_i, country_j, relatedness, and mutual.
+relatedness_top_k_edges <- function(dt_relatedness, k = 4) {
   # Check for valid input
   require(checkmate)
   require(data.table)
   assertDataTable(dt_relatedness)
   assertNames(names(dt_relatedness),
               must.include = c("country_i", "country_j", "relatedness"))
-  assertCount(k_start)
-  assertCount(k_max)
-
-  # Extract all countries featured in the relatedness data.table
-  countries <- sort(unique(c(dt_relatedness$country_i, dt_relatedness$country_j)))
+  assertCount(k)
 
   # Transform undirected co-occurring countries into a directed version with every unordered
   # country pair appearing now as two directed rows, one from each country's point of view
@@ -713,32 +707,21 @@ find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
     dt_relatedness[, .(country = country_j, partner = country_i, relatedness)]
   ))
 
-  # Iterate through k to test for the smallest one for which an isolated-free solution can
-  # be found
-  countries_not_isolated <- character(0)
-
   # Rank each country's partners according to their relatedness
   dt_directed[, rank := frank(-relatedness, ties.method = "first"), by = country]
 
-  for (k in seq(k_start, k_max, by = 1)) {
-    # Filter to k partners
-    dt_top_k <- dt_directed[rank <= k]
+  # Filter to k partners
+  dt_top_k <- dt_directed[rank <= k]
 
-    # Combine directed edges into undirected pairs again, so ("AT", partner = "DE") and
-    # ("DE", partner = "AT") would end up being country_i = "AT", country_j = "DE"
-    dt_top_k[, ":=" (country_i = pmin(country, partner), country_j = pmax(country, partner))]
+  # Combine directed edges into undirected pairs again, so ("AT", partner = "DE") and
+  # ("DE", partner = "AT") would end up being country_i = "AT", country_j = "DE"
+  dt_top_k[, ":=" (country_i = pmin(country, partner), country_j = pmax(country, partner))]
 
-    # Check for remaining isolate countries, i.e. whether every country has at least one
-    # connection
-    countries_not_isolated <- unique(c(dt_top_k$country_i, dt_top_k$country_j))
-
-    # If all countries are represented, then end the iteration loop. Otherwise continue
-    # with increased k. Unless 'k_max' is reached, then throw warning message.
-    if(length(setdiff(countries, countries_not_isolated)) == 0) break
-  }
-  if(length(setdiff(countries, countries_not_isolated)) > 0) {
-    warning("No isolate-free solution found up to maximum of k = ", k_max, ". ",
-            length(setdiff(countries, countries_not_isolated)), " countries remain isolated.")
+  # Report any isolated countries
+  countries <- sort(unique(c(dt_relatedness$country_i, dt_relatedness$country_j)))
+  countries_isolated <- setdiff(countries, unique(c(dt_top_k$country_i, dt_top_k$country_j)))
+  if(length(countries_isolated) > 0) {
+    message(length(countries_isolated), " countries remain isolated at k = ", k, ".")
   }
 
   # Transform directed top-k edges back into undirected edge list and introducing flag for
@@ -747,10 +730,8 @@ find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
   dt_top_k <- unique(dt_top_k[, .(country_i, country_j, mutual = (n_directions == 2))])
 
   # Reattach relatedness values to this edge list
-  dt_top_k <- merge(dt_top_k, dt_relatedness[, .(country_i, country_j, relatedness)],
-                    by = c("country_i", "country_j"))
-  dt_top_k[, k_used := k]
-  dt_top_k
+  merge(dt_top_k, dt_relatedness[, .(country_i, country_j, relatedness)],
+        by = c("country_i", "country_j"))
 }
 
 # --- Function 14 ------------------------------------------------------------------------
@@ -763,7 +744,7 @@ find_relatedness_top_k <- function(dt_relatedness, k_start = 4, k_max = 10) {
 #' Inputs:
 #' @param dt_nodes data.table. Must contain columns country and n_connections.
 #' @param dt_edges data.table. Must contain columns country_i, country_j, relatedness, and
-#'                 mutual. Matches the output of 'find_relatedness_top_k()'.
+#'                 mutual. Matches the output of 'relatedness_top_k_edges()'.
 #' @param seed Numeric scalar. Default is 20260916; for reproducible force-directed layout
 #' @param labels Named character vector. Default NULL; optional. Maps ISO2 country codes
 #'               to German label names for node text. If not provided, raw ISO2 codes are

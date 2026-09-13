@@ -552,8 +552,7 @@ for (prog in programmes) {
   ]
 
   dt_relatedness <- compute_relatedness(dt_country_project)
-  dt_top_k <- find_relatedness_top_k(dt_relatedness, k_start = 4)
-  message(prog, ": no-isolate solution found at k = ", unique(dt_top_k$k_used))
+  dt_top_k <- relatedness_top_k_edges(dt_relatedness, k = 4)
 
   plot_relatedness <- build_relatedness_plot(dt_nodes = dt_country_connections[programme == prog],
                                              dt_edges = dt_top_k,
