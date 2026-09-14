@@ -96,7 +96,10 @@
   hyphens: auto;
 }
 
- .refs-slide h2 {
+.refs-slide h2 {
   font-size: 1.75em !important;
 }
 
+.rq1-block {
+  min-height: 8.5em;
+}

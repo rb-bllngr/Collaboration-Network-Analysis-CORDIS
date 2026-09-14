@@ -111,12 +111,12 @@ knitr::include_graphics("Images/pillars_horizon.png")
 
 <br>
 
+::: {.rq1-block}
 [**Forschungsfrage 1**]{.lmu-green}:
 
 Wie entwickelt sich die strukturelle Topologie der Kollaborationsnetzwerke
 auf Organisationsebene und länderaggregierter Ebene von H2020 zu HORIZON?
-
-<br><br>
+:::
 
 [**Forschungsfrage 2**]{.lmu-green}:
 
@@ -181,9 +181,9 @@ Positionierung der koordinierenden Organisation in den Netzwerken bei?
 :::
 :::
 
--   ergänzt um Bevölkerungszahlen des *UN World Population Prospects 2024*
-
 -   Landeszugehörigkeit teilweise imputiert über ```nutsCode``` oder ```geolocation```
+
+-   ergänzt um Bevölkerungszahlen des *UN World Population Prospects 2024*
 
 ## Netzwerke {.custom-smaller}
 
@@ -192,7 +192,7 @@ Positionierung der koordinierenden Organisation in den Netzwerken bei?
 -   auf [**Organisationsebene**]{.lmu-green}: Projektion der bimodalen (Organisation $\times$ Projekt) Struktur auf unimodale (Organisation $\times$ Organisation) Netzwerke
     - Knoten: Organisationen
     - Kanten: Kollaborationen zwischen Organisationen
-    - Gewicht: Anzahl an Projekten
+    - Gewicht: Anzahl an gemeinsamen Projekten
 
 ## Netzwerke {.custom-smaller visibility="uncounted"}
 
@@ -201,7 +201,7 @@ Positionierung der koordinierenden Organisation in den Netzwerken bei?
 -   auf [**Organisationsebene**]{.lmu-green}: Projektion der bimodalen (Organisation $\times$ Projekt) Struktur auf unimodale (Organisation $\times$ Organisation) Netzwerke
     - Knoten: Organisationen
     - Kanten: Kollaborationen zwischen Organisationen
-    - Gewicht: Anzahl an Projekten
+    - Gewicht: Anzahl an gemeinsamen Projekten
 <br><br>
 -   auf [**Länderebene**]{.lmu-green}: Aggregation der Organisationen zu Ländern (Land $\times$ Land)
 
@@ -264,9 +264,19 @@ knitr::include_graphics("Plots/degree_distribution.png")
 knitr::include_graphics("Plots/cohesion_components_histogram.png")
 ```
 
-## FOLIE ZUR SMALL-WORLD-EIGENSCHAFT {.custom-smaller}
+## Small-World-Eigenschaft der Netzwerke {.custom-smaller}
 
+-   globaler Clustering-Koeffizient:
+    $$\qquad \quad \ \ \ C_{obs}^{\text{H2020}} \approx 0.13 \approx C_{obs}^{\text{HORIZON}}$$
 
+-   durchschnittliche Länge der kürzesten Pfade:
+    $$\qquad \quad \ \ \ L_{obs}^{\text{H2020}} \approx 2.75\qquad \text{und} \qquad L_{obs}^{\text{HORIZON}} \approx 2.72$$
+
+$\Longrightarrow$ Small-World-Koeffizient mit [**Erdos-Rényi-Modell**]{.lmu-green}:
+$$S_{ER}^{\Delta, \text{H2020}} \approx 79.76 \qquad \text{und} \qquad S_{ER}^{\Delta, \text{HORIZON}} \approx 75.37$$
+
+$\Longrightarrow$ Small-World-Koeffizient mit [**Viger-Latapy-Modell**]{.lmu-green}:
+$$S_{VL}^{\Delta, \text{H2020}} \approx 2.69 \qquad \text{und} \qquad S_{VL}^{\Delta, \text{HORIZON}} \approx 2.67$$
 
 ## Betweenness & Grad: positive Zusammenhänge {.custom-smaller}
 
@@ -280,10 +290,10 @@ knitr::include_graphics("Plots/centrality_betweenness_degree.png")
 knitr::include_graphics("Plots/centrality_eigenvector_degree.png")
 ```
 
-## Hohe Zentralität bei andauernder Koordination {.custom-smaller}
+## Zentralität & Koordination: positive Beziehung {.custom-smaller}
 
-```{r fig-persistence-centrality, out.width="100%", fig.cap="Entwicklung der Zentralitäten von H2020 zu HORIZON hinsichtlich der Koordinatorentätigkeit<br>einer Organisation in den jeweiligen Rahmenprogrammen."}
-knitr::include_graphics("Plots/roles_persistence_centrality.png")
+```{r fig-centrality-coordinator, out.width="100%", fig.cap="Häufigkeit der Koordinatorentätigkeit einer Organisation gegen ihre Zentralität für H2020 (*links*) und HORIZON (*rechts*). Isolierte Knoten für Grad-Zentralität nicht berücksichtigt."}
+knitr::include_graphics("Plots/roles_centrality_coordinator.png")
 ```
 
 ## Dominanz der west-/mitteleuropäischen Länder {.custom-smaller}
@@ -294,13 +304,13 @@ knitr::include_graphics("Plots/countries_ranking_evolution_sum.png")
 
 ## Stark vernetzter west-/mitteleuropäischer Kern {.custom-smaller}
 
-```{r fig-map-EU-h2020, out.width="100%", fig.cap="Geographische Karte der Kollaborationen auf Länderebene für **H2020** unter europäischem<br>Fokus. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten. Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
+```{r fig-map-EU-h2020, out.width="100%", fig.cap="Geographische Karte der Kollaborationen auf Länderebene für **H2020** unter <br>europäischem Fokus. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten.<br>Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
 knitr::include_graphics("Plots/countries_map_geographic_h2020_EU_zoomed.png")
 ```
 
 ## Stark vernetzter west-/mitteleuropäischer Kern {.custom-smaller visibility="uncounted"}
 
-```{r fig-map-EU-horizon, out.width="100%", fig.cap="Geographische Karte der Kollaborationen auf Länderebene für **HORIZON** unter europäischem Fokus. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten. Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
+```{r fig-map-EU-horizon, out.width="100%", fig.cap="Geographische Karte der Kollaborationen auf Länderebene für **HORIZON** unter<br>europäischem Fokus. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten.<br>Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
 knitr::include_graphics("Plots/countries_map_geographic_horizon_EU_zoomed.png")
 ```
 
@@ -326,18 +336,21 @@ knitr::include_graphics("Plots/countries_map_abstract_horizon_EU.png")
 
 <br>
 
+::: {.rq1-block}
 [**Forschungsfrage 1**]{.lmu-green}: *Entwicklung der Netzwerktopologie* 
 
-[PLACEHOLDER]<br>
-[PLACEHOLDER]
+-   keine grundlegenden Veränderungen in Art, wie einzelne Organisationen im Netzwerk verbunden, noch wie sich führender Länderkern zusammensetzt
 
-<br><br>
+-   geringfügige Änderungen als *„evolution, not a revolution"* [^1] zu interpretieren, gepaart mit Fortführung der etablierten Kollaborationseigenschaften
+:::
 
 [**Forschungsfrage 2**]{.lmu-green}: *Bedeutung der Koordinatorentätigkeit*
 
-[PLACEHOLDER]<br>
-[PLACEHOLDER]
+-   positive Zusammenhänge zwischen Koordinatorentätigkeit und der Position einer koordinierenden Organisation innerhalb der Rahmenprogramme
 
+-   über Programme hinweg kein automatischer Rückschluss aus Koordination auf andauernd bedeutendere Positionierung einer Organisation möglich
+
+[^1]: GD RTD und Europäische Kommission (2018)
 
 ## Literaturverzeichnis {.refs-slide .scrollable}
 
@@ -536,12 +549,6 @@ data %>%
 knitr::include_graphics("Plots/centrality_correlation_matrix.png")
 ```
 
-## Zentralität & Koordination:<br>positive Zusammenhänge {.custom-smaller}
-
-```{r app-centrality-coordinator, out.width="100%", fig.cap="Abbildung A11: Häufigkeit der Koordinatorentätigkeit einer Organisation gegen ihre Zentralität für H2020 (*links*) und HORIZON (*rechts*). Isolierte Knoten für Grad-Zentralität nicht berücksichtigt."}
-knitr::include_graphics("Plots/roles_centrality_coordinator.png")
-```
-
 ## Hohe Fluktuation in Koordinatorentätigkeit {.custom-smaller}
 
 ```{r app-contingency-table, out.width="100%"}
@@ -591,9 +598,15 @@ gt(data, rowname_col = "row_label") %>%
 
 ## Hohe Fluktuation in Koordinatorentätigkeit {.custom-smaller visibility="uncounted"}
 
-```{r app-contingency-figure, out.width="100%", fig.cap="Abbildung A12: Kontingenztafel der Verteilung nach Koordinatenstatus in H2020 und HORIZON."}
+```{r app-contingency-figure, out.width="100%", fig.cap="Abbildung A11: 3 $\\times$ 3 Rasterdiagramm der Verteilung nach Koordinatenstatus in H2020 und HORIZON."}
 knitr::include_graphics("Plots/roles_persistence_jittered.png")
 ``` 
+
+## Hohe Zentralität bei andauernder Koordination {.custom-smaller}
+
+```{r app-persistence-centrality, out.width="100%", fig.cap="Abbildung A12: Entwicklung der Zentralitäten von H2020 zu HORIZON hinsichtlich der Koordinatorentätigkeit<br>einer Organisation in den jeweiligen Rahmenprogrammen."}
+knitr::include_graphics("Plots/roles_persistence_centrality.png")
+```
 
 ## Höchste Zentralität durchweg bei Koordination {.custom-smaller}
 
@@ -775,36 +788,36 @@ knitr::include_graphics("Plots/countries_map_geographic_horizon_world_zoomed.png
 
 ## Außen einzeln über Brücken mit Kern verbunden {.custom-smaller}
 
-```{r app-abstract-world-h2020, out.width="100%", fig.cap="Abbildung 19a: Kräftebasierte Positionierung der weltweiten Kollaborationen auf Länderebene für **H2020**<br>mittels Fruchterman-Reingold. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten. Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
+```{r app-abstract-world-h2020, out.width="100%", fig.cap="Abbildung A19a: Kräftebasierte Positionierung der weltweiten Kollaborationen auf Länderebene für **H2020**<br>mittels Fruchterman-Reingold. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten. Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
 knitr::include_graphics("Plots/countries_map_abstract_h2020_world.png")
 ```
 
 ## Außen einzeln über Brücken mit Kern verbunden {.custom-smaller}
 
-```{r app-abstract-world-horizon, out.width="100%", fig.cap="Abbildung 19b: Kräftebasierte Positionierung der weltweiten Kollaborationen auf Länderebene für **HORIZON**<br>mittels Fruchterman-Reingold. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten. Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
+```{r app-abstract-world-horizon, out.width="100%", fig.cap="Abbildung A19b: Kräftebasierte Positionierung der weltweiten Kollaborationen auf Länderebene für **HORIZON**<br>mittels Fruchterman-Reingold. Kanten: Vereinigung aus maximalem Spannbaum und $n-1$ stärksten Gewichten. Knotengröße: Anzahl Verbindungen. Kantenbreite: Anzahl gemeinsame Projekte."}
 knitr::include_graphics("Plots/countries_map_abstract_horizon_world.png")
 ```
 
 ## Einfluss der geographischen Lage auf Affinität {.custom-smaller}
 
-```{r app-relatedness-h2020, out.width="100%", fig.cap="Abbildung 20a: Kräftebasierte Positionierung der Kollaborationen auf Länderebene für **H2020**<br>mittels Fruchterman-Reingold. Farbliche Gruppierung mittels Louvain-Methode über *Relatedness*.<br>Kanten: $k$ = 4 am meisten bevorzugten Verbindungen je Land. Knotengröße: Anzahl Verbindungen.<br>Kantenart: einseitige (*gepunktet*) oder beidseitige (*durchgezogen*) Affinität."}
+```{r app-relatedness-h2020, out.width="100%", fig.cap="Abbildung A20a: Kräftebasierte Positionierung der Kollaborationen auf Länderebene für **H2020**<br>mittels Fruchterman-Reingold. Farbliche Gruppierung mittels Louvain-Methode über *Relatedness*.<br>Kanten: $k$ = 4 am meisten bevorzugten Verbindungen je Land. Knotengröße: Anzahl Verbindungen.<br>Kantenart: einseitige (*gepunktet*) oder beidseitige (*durchgezogen*) Affinität."}
 knitr::include_graphics("Plots/countries_relatedness_h2020.png")
 ```
 
 ## Einfluss der geographischen Lage auf Affinität {.custom-smaller visibility="uncounted"}
 
-```{r app-relatedness-horizon, out.width="100%", fig.cap="Abbildung 20b: Kräftebasierte Positionierung der Kollaborationen auf Länderebene für **HORIZON**<br>mittels Fruchterman-Reingold. Farbliche Gruppierung mittels Louvain-Methode über *Relatedness*.<br>Kanten: $k$ = 4 am meisten bevorzugten Verbindungen je Land. Knotengröße: Anzahl Verbindungen.<br>Kantenart: einseitige (*gepunktet*) oder beidseitige (*durchgezogen*) Affinität."}
+```{r app-relatedness-horizon, out.width="100%", fig.cap="Abbildung A20b: Kräftebasierte Positionierung der Kollaborationen auf Länderebene für **HORIZON**<br>mittels Fruchterman-Reingold. Farbliche Gruppierung mittels Louvain-Methode über *Relatedness*.<br>Kanten: $k$ = 4 am meisten bevorzugten Verbindungen je Land. Knotengröße: Anzahl Verbindungen.<br>Kantenart: einseitige (*gepunktet*) oder beidseitige (*durchgezogen*) Affinität."}
 knitr::include_graphics("Plots/countries_relatedness_horizon.png")
 ```
 
 ## Minimale Distanzen & überlagernde Positionen {.custom-smaller}
 
-```{r app-mds, out.width="100%", fig.cap="Abbildung 21a: Distanzbasierte Positionierung auf Länderebene mittels multidimensionaler Skalierung<br>für H2020 (*links*) und HORIZON (*rechts*) unter Betrachtung der vollen Dimensionen."}
+```{r app-mds, out.width="100%", fig.cap="Abbildung A21a: Distanzbasierte Positionierung auf Länderebene mittels multidimensionaler Skalierung<br>für H2020 (*links*) und HORIZON (*rechts*) unter Betrachtung der vollen Dimensionen."}
 knitr::include_graphics("Plots/mds_inverse_weight.png")
 ```
 
 ## Minimale Distanzen & überlagernde Positionen {.custom-smaller visibility="uncounted"}
 
-```{r app-mds-zoomed, out.width="100%", fig.cap="Abbildung 21b: Distanzbasierte Positionierung auf Länderebene mittels multidimensionaler Skalierung<br>für H2020 (*links*) und HORIZON (*rechts*) unter vergrößerter Sicht auf rund um den Koordinatenursprung."}
+```{r app-mds-zoomed, out.width="100%", fig.cap="Abbildung A21b: Distanzbasierte Positionierung auf Länderebene mittels multidimensionaler Skalierung<br>für H2020 (*links*) und HORIZON (*rechts*) unter vergrößerter Sicht auf rund um den Koordinatenursprung."}
 knitr::include_graphics("Plots/mds_inverse_weight_zoomed.png")
 ```
